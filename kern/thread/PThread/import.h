@@ -15,6 +15,10 @@ unsigned int tqueue_dequeue(unsigned int chid);
 unsigned int get_curid(void);
 void set_curid(unsigned int curid);
 
+void map_cow(unsigned int from, unsigned int to);
+unsigned int container_get_quota(unsigned int id);
+unsigned int container_get_usage(unsigned int id);
+
 #endif  /* _KERN_ */
 
 #endif  /* !_KERN_THREAD_PTHREAD_H_ */

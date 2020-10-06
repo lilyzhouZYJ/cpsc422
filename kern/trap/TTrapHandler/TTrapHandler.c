@@ -65,8 +65,8 @@ void pgflt_handler(void)
         pte_entry = get_ptbl_entry_by_va(cur_pid, fault_va);
         if (pte_entry & PTE_COW) {
             // handling copy-on-write
-            // TODO
-
+            map_decow(cur_pid, fault_va);
+            return;
         } else {
             KERN_PANIC("Writing to read-only page: va = %p\n", fault_va);
         }
@@ -94,7 +94,13 @@ void pgflt_handler(void)
  */
 void exception_handler(void)
 {
-    // TODO
+    switch (uctx_pool[get_curid()].trapno) {
+    case T_PGFLT:
+        pgflt_handler();
+        break;
+    default:
+        default_exception_handler();
+    }
 }
 
 static int spurious_intr_handler(void)
@@ -120,7 +126,16 @@ static int default_intr_handler(void)
  */
 void interrupt_handler(void)
 {
-    // TODO
+    switch (uctx_pool[get_curid()].trapno) {
+    case IRQ_TIMER:
+        timer_intr_handler();
+        break;
+    case IRQ_SPURIOUS:
+        spurious_intr_handler();
+        break;
+    default:
+        default_intr_handler();
+    }
 }
 
 void trap(tf_t *tf)

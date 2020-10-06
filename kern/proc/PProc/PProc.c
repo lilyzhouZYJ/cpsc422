@@ -2,6 +2,7 @@
 #include <lib/debug.h>
 #include <lib/gcc.h>
 #include <lib/seg.h>
+#include <lib/string.h>
 #include <lib/trap.h>
 #include <lib/x86.h>
 
@@ -36,6 +37,22 @@ unsigned int proc_create(void *elf_addr, unsigned int quota)
         uctx_pool[pid].esp = VM_USERHI;
         uctx_pool[pid].eflags = FL_IF;
         uctx_pool[pid].eip = elf_entry(elf_addr);
+    }
+
+    return pid;
+}
+
+unsigned int proc_fork()
+{
+    unsigned int pid, id;
+
+    id = get_curid();
+    pid = thread_fork((void *) proc_start_user, id);
+
+    if (pid != NUM_IDS) {
+        // Copy user context and set child return value
+        memcpy(&uctx_pool[pid], &uctx_pool[id], sizeof(struct tf_t));
+        uctx_pool[pid].regs.ebx = 0;
     }
 
     return pid;

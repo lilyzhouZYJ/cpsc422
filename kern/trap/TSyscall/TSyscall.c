@@ -77,7 +77,37 @@ extern uint8_t _binary___obj_user_fork_test_fork_test_start[];
  */
 void sys_spawn(void)
 {
-    // TODO
+    unsigned int elf_id = syscall_get_arg2();
+    unsigned int quota = syscall_get_arg3();
+    void *elf_addr;
+    unsigned int child;
+
+    switch (elf_id) {
+    case 1:
+        elf_addr = _binary___obj_user_pingpong_ping_start;
+        break;
+    case 2:
+        elf_addr = _binary___obj_user_pingpong_pong_start;
+        break;
+    case 3:
+        elf_addr = _binary___obj_user_pingpong_ding_start;
+        break;
+    case 4:
+        elf_addr = _binary___obj_user_fork_test_fork_test_start;
+        break;
+    default:
+        syscall_set_errno(E_INVAL_PID);
+        syscall_set_retval1(NUM_IDS);
+        return;
+    }
+
+    child = proc_create(elf_addr, quota);
+    if (child != NUM_IDS) {
+        syscall_set_errno(E_SUCC);
+    } else {
+        syscall_set_errno(E_INVAL_PID);
+    }
+    syscall_set_retval1(child);
 }
 
 /**
@@ -88,11 +118,18 @@ void sys_spawn(void)
  */
 void sys_yield(void)
 {
-    // TODO
+    thread_yield();
+    syscall_set_errno(E_SUCC);
 }
 
 // Your implementation of fork
 void sys_fork()
 {
-    // TODO
+    unsigned int child = proc_fork();
+    if (child != NUM_IDS) {
+        syscall_set_errno(E_SUCC);
+    } else {
+        syscall_set_errno(E_INVAL_PID);
+    }
+    syscall_set_retval1(child);
 }
