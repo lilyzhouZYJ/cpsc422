@@ -12,12 +12,12 @@ void yield(void)
     sys_yield();
 }
 
-void produce(void)
+void produce(unsigned int val)
 {
-    sys_produce();
+    sys_produce(val);
 }
 
-void consume(void)
+unsigned int consume(void)
 {
-    sys_consume();
+    return sys_consume();
 }

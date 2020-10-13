@@ -54,6 +54,8 @@ void debug_warn(const char *file, int line, const char *fmt, ...);
 void debug_panic(const char *file, int line, const char *fmt, ...);
 
 void debug_init(void);
+void debug_lock(void);
+void debug_unlock(void);
 #else   /* DEBUG_MSG */
 #define dprintf(...) do {} while (0)
 #endif  /* !DEBUG_MSG */

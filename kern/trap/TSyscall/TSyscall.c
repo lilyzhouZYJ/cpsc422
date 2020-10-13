@@ -1,4 +1,5 @@
 #include <lib/debug.h>
+#include <lib/cv.h>
 #include <lib/pmap.h>
 #include <lib/types.h>
 #include <lib/x86.h>
@@ -33,6 +34,7 @@ void sys_puts(tf_t *tf)
     remain = str_len;
     cur_pos = str_uva;
 
+    debug_lock();
     while (remain) {
         if (remain < PAGESIZE - 1)
             nbytes = remain;
@@ -40,6 +42,7 @@ void sys_puts(tf_t *tf)
             nbytes = PAGESIZE - 1;
 
         if (pt_copyin(cur_pid, cur_pos, sys_buf[cur_pid], nbytes) != nbytes) {
+            debug_unlock();
             syscall_set_errno(tf, E_MEM);
             return;
         }
@@ -50,6 +53,7 @@ void sys_puts(tf_t *tf)
         remain -= nbytes;
         cur_pos += nbytes;
     }
+    debug_unlock();
 
     syscall_set_errno(tf, E_SUCC);
 }
@@ -78,12 +82,30 @@ extern uint8_t _binary___obj_user_pingpong_ding_start[];
  */
 void sys_spawn(tf_t *tf)
 {
+    unsigned int curid;
     unsigned int new_pid;
     unsigned int elf_id, quota;
     void *elf_addr;
 
+    curid = get_curid();
     elf_id = syscall_get_arg2(tf);
     quota = syscall_get_arg3(tf);
+
+    if (container_can_consume(curid, quota) == 0) {
+        syscall_set_errno(tf, E_EXCEEDS_QUOTA);
+        syscall_set_retval1(tf, NUM_IDS);
+        return;
+    }
+    else if (NUM_IDS < curid * MAX_CHILDREN + 1 + MAX_CHILDREN) {
+        syscall_set_errno(tf, E_MAX_NUM_CHILDEN_REACHED);
+        syscall_set_retval1(tf, NUM_IDS);
+        return;
+    }
+    else if (container_get_nchildren(curid) == MAX_CHILDREN) {
+        syscall_set_errno(tf, E_INVAL_CHILD_ID);
+        syscall_set_retval1(tf, NUM_IDS);
+        return;
+    }
 
     switch (elf_id) {
     case 1:
@@ -124,20 +146,24 @@ void sys_yield(tf_t *tf)
     syscall_set_errno(tf, E_SUCC);
 }
 
+BoundedBuffer bb;
+
 void sys_produce(tf_t *tf)
 {
-    unsigned int i;
-    for (i = 0; i < 5; i++) {
-        KERN_DEBUG("CPU %d: Process %d: Produced %d\n", get_pcpu_idx(), get_curid(), i);
-    }
+    unsigned int val = syscall_get_arg2(tf);
+    BB_enqueue(&bb, val);
+    NO_INTR(
+        KERN_DEBUG("CPU %d: Process %d: Produced %d\n", get_pcpu_idx(), get_curid(), val);
+    );
     syscall_set_errno(tf, E_SUCC);
 }
 
 void sys_consume(tf_t *tf)
 {
-    unsigned int i;
-    for (i = 0; i < 5; i++) {
-        KERN_DEBUG("CPU %d: Process %d: Consumed %d\n", get_pcpu_idx(), get_curid(), i);
-    }
+    unsigned int val = BB_dequeue(&bb);
+    NO_INTR(
+        KERN_DEBUG("CPU %d: Process %d: Consumed %d\n", get_pcpu_idx(), get_curid(), val);
+    );
     syscall_set_errno(tf, E_SUCC);
+    syscall_set_retval1(tf, val);
 }

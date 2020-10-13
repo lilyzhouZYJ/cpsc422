@@ -12,6 +12,8 @@
 
 #include "import.h"
 
+unsigned int last_active[NUM_CPUS];
+
 static void trap_dump(tf_t *tf)
 {
     if (tf == NULL)
@@ -19,6 +21,7 @@ static void trap_dump(tf_t *tf)
 
     uintptr_t base = (uintptr_t) tf;
 
+    debug_lock();
     KERN_DEBUG("trapframe at %x\n", base);
     KERN_DEBUG("\t%08x:\tedi:   \t\t%08x\n", &tf->regs.edi, tf->regs.edi);
     KERN_DEBUG("\t%08x:\tesi:   \t\t%08x\n", &tf->regs.esi, tf->regs.esi);
@@ -37,6 +40,7 @@ static void trap_dump(tf_t *tf)
     KERN_DEBUG("\t%08x:\teflags:\t\t%08x\n", &tf->eflags, tf->eflags);
     KERN_DEBUG("\t%08x:\tesp:   \t\t%08x\n", &tf->esp, tf->esp);
     KERN_DEBUG("\t%08x:\tss:    \t\t%08x\n", &tf->ss, tf->ss);
+    debug_unlock();
 }
 
 void default_exception_handler(tf_t *tf)
@@ -95,6 +99,7 @@ static int spurious_intr_handler(void)
 static int timer_intr_handler(void)
 {
     intr_eoi();
+    sched_update();
     return 0;
 }
 
@@ -125,9 +130,12 @@ void interrupt_handler(tf_t *tf)
 void trap(tf_t *tf)
 {
     unsigned int cur_pid = get_curid();
+    unsigned int cpu_idx = get_pcpu_idx();
     trap_cb_t handler;
 
     set_pdir_base(0);  // switch to the kernel's page table
+
+    last_active[cpu_idx] = cur_pid;
 
     handler = TRAP_HANDLER[get_pcpu_idx()][tf->trapno];
 
@@ -138,7 +146,11 @@ void trap(tf_t *tf)
                   tf->trapno, cur_pid, tf->eip);
     }
 
-    kstack_switch(cur_pid);
+    if (last_active[cpu_idx] != cur_pid) {
+        kstack_switch(cur_pid);
+    }
     set_pdir_base(cur_pid);
+
+    last_active[cpu_idx] = 0;
     trap_return((void *) tf);
 }

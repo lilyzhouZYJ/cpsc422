@@ -4,10 +4,23 @@
 #include <lib/x86.h>
 
 #include <lib/types.h>
-#include <lib/spinlock.h>
+#include <lib/reentrant_lock.h>
+
+static reentrantlock debug_lk;
 
 void debug_init(void)
 {
+    reentrantlock_init(&debug_lk);
+}
+
+void debug_lock(void)
+{
+    reentrantlock_acquire(&debug_lk);
+}
+
+void debug_unlock(void)
+{
+    reentrantlock_release(&debug_lk);
 }
 
 extern int vdprintf(const char *fmt, va_list ap);
@@ -15,10 +28,12 @@ extern int vdprintf(const char *fmt, va_list ap);
 void debug_info(const char *fmt, ...)
 {
 #ifdef DEBUG_MSG
+    debug_lock();
     va_list ap;
     va_start(ap, fmt);
     vdprintf(fmt, ap);
     va_end(ap);
+    debug_unlock();
 #endif
 }
 
@@ -26,12 +41,14 @@ void debug_info(const char *fmt, ...)
 
 void debug_normal(const char *file, int line, const char *fmt, ...)
 {
+    debug_lock();
     dprintf("[D] %s:%d: ", file, line);
 
     va_list ap;
     va_start(ap, fmt);
     vdprintf(fmt, ap);
     va_end(ap);
+    debug_unlock();
 }
 
 #define DEBUG_TRACEFRAMES 10
@@ -55,6 +72,7 @@ gcc_noinline void debug_panic(const char *file, int line, const char *fmt, ...)
     uintptr_t eips[DEBUG_TRACEFRAMES];
     va_list ap;
 
+    debug_lock();
     dprintf("[P] %s:%d: ", file, line);
 
     va_start(ap, fmt);
@@ -67,17 +85,20 @@ gcc_noinline void debug_panic(const char *file, int line, const char *fmt, ...)
 
     dprintf("Kernel Panic !!!\n");
 
+    debug_unlock();
     halt();
 }
 
 void debug_warn(const char *file, int line, const char *fmt, ...)
 {
+    debug_lock();
     dprintf("[W] %s:%d: ", file, line);
 
     va_list ap;
     va_start(ap, fmt);
     vdprintf(fmt, ap);
     va_end(ap);
+    debug_unlock();
 }
 
 #endif  /* DEBUG_MSG */

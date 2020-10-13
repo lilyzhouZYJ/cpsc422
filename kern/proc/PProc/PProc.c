@@ -12,7 +12,9 @@ extern tf_t uctx_pool[NUM_IDS];
 
 void proc_start_user(void)
 {
-    unsigned int cur_pid = get_curid();
+    unsigned int cur_pid;
+
+    cur_pid = get_curid();
     kstack_switch(cur_pid);
     set_pdir_base(cur_pid);
 

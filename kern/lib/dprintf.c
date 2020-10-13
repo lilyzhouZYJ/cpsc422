@@ -35,12 +35,14 @@ int vdprintf(const char *fmt, va_list ap)
 {
     struct dprintbuf b;
 
+    debug_lock();
     b.idx = 0;
     b.cnt = 0;
     vprintfmt((void *) putch, &b, fmt, ap);
 
     b.buf[b.idx] = 0;
     cputs(b.buf);
+    debug_unlock();
 
     return b.cnt;
 }
