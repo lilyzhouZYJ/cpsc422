@@ -23,23 +23,13 @@
  */
 
 // Use global variable to store last-allocated page index
-unsigned int last_allocated_idx = 0;
+unsigned int last_allocated_idx = VM_USERLO_PI;
 
 unsigned int palloc()
 {
     // TODO
-    // Scan AT for non-kernel-reserved pages, starting at (last_allocated_idx + 1)
-    for(unsigned int idx = last_allocated_idx + 1; idx <= VM_USERHI_PI - 1; idx++){
-        if(at_is_norm(idx) == 1 && at_is_allocated(idx) == 0){
-            // Found page with normal permissions + is not allocated
-            at_set_allocated(idx, 1);
-            last_allocated_idx = idx;
-            return idx;
-        }
-    }
-
-    // No available page found so far; start from VM_USERLO_PI and go up to last_allocated_idx
-    for(unsigned int idx = VM_USERLO_PI; idx <= last_allocated_idx; idx++){
+    // Scan AT for non-kernel-reserved pages
+    for(unsigned int idx = last_allocated_idx; idx <= VM_USERHI_PI - 1; idx++){
         if(at_is_norm(idx) == 1 && at_is_allocated(idx) == 0){
             // Found page with normal permissions + is not allocated
             at_set_allocated(idx, 1);
@@ -62,7 +52,10 @@ unsigned int palloc()
 void pfree(unsigned int pfree_index)
 {
     // TODO
-    if(pfree_index >= VM_USERLO_PI && pfree_index < VM_USERHI_PI){
+    if(at_is_norm(pfree_index) && pfree_index >= VM_USERLO_PI && pfree_index < VM_USERHI_PI){
         at_set_allocated(pfree_index, 0);
+        if(pfree_index < last_allocated_idx){
+            last_allocated_idx = pfree_index;
+        }
     }
 }
