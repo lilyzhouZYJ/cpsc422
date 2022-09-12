@@ -5,14 +5,18 @@ Debug with gdb: make qemu-gdb / make qemu-nox-gdb
                 (in another terminal) gdb
 
 Questions:
-1. Processor starts executing 32-bit code at instruction address 0x7e79. 
-   The instruction .code32 causes the switch from 16-bit to 32-bit code.
-2. The last instruction executed by the boot loader is `jmp %edx` at 0x8f26.
-   The first instruction of the kernel is `cli` at 0x1023f0`.
+1. Processor starts executing 32-bit code in `switch_prot` in boot1.S.
+   The instruction that causes this switch is `ljmp	$PROT_MODE_CSEG, $protcseg`, 
+   whichsets CS to PROT_MODE_CSEG, which is 0x8 and jumps to protcseg, which is 
+   the start of 32-bit code. The processor hence switches from real mode to
+   protected mode.
+2. The last instruction executed by the boot loader is `jmp %edx` at 0x8f26,
+   in the function `exec_kernel` in boot1main.c. The first instruction of the 
+   kernel is `cli` at 0x1023f0`.
 3. The first instruction of the kernel is at 0x1023f0.
 4. Boot loader decides how many sectors it must read in order to fetch the entire 
    kernel from disk by using the program header table in the ELF file. 
-   The ELF file is loaded from the first bootable position.
+   The ELF file was loaded from the first bootable position.
 
 Brief description of what I implemented:
 In this assignment, I implemented the physical memory management layer of the OS.
