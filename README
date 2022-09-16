@@ -15,8 +15,13 @@ Questions:
    kernel is `cli` at 0x1023f0`.
 3. The first instruction of the kernel is at 0x1023f0.
 4. Boot loader decides how many sectors it must read in order to fetch the entire 
-   kernel from disk by using the program header table in the ELF file. 
-   The ELF file was loaded from the first bootable partition.
+   kernel from disk by using the program header table in the ELF file. The location
+   of the program header table is given in the ELF header by the field `e_phoff`,
+   which gives the offset of the start of the program header table relative to the
+   start of the ELF file. The number of entries in the program header table is given
+   by the field `e_phnum`, also in the ELF header. For each entry of program header,
+   the size of memory to read is `p_memsz`, so using this information, the boot loader
+   can figure out how many sectors to read.
 
 Brief description of what I implemented:
 In this assignment, I implemented the physical memory management layer of the OS.

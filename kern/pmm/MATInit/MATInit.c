@@ -38,11 +38,19 @@ void pmem_init(unsigned int mbi_addr)
     unsigned int max_addr = 0;
     for(unsigned int r = 0; r < num_rows; r++){
         unsigned int curr_max_addr = get_mms(r) + get_mml(r);
+        if(curr_max_addr == 0xfffffffe){
+            // bug fix, see https://edstem.org/us/courses/21713/discussion/1775037
+            curr_max_addr += 1;
+        }
         if(curr_max_addr > max_addr){
             max_addr = curr_max_addr;
         }
     }
-    nps = max_addr / PAGESIZE;
+    if(max_addr % PAGESIZE == 0){
+        nps = max_addr / PAGESIZE;
+    } else {
+        nps = max_addr / PAGESIZE + 1;
+    }
 
     set_nps(nps);  // Setting the value computed above to NUM_PAGES.
 
