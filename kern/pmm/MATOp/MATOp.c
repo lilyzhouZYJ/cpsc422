@@ -21,9 +21,23 @@
  * 2. Optimize the code using memoization so that you do not have to
  *    scan the allocation table from scratch every time.
  */
+
+// Use global variable to store last-allocated page index
+unsigned int last_allocated_idx = VM_USERLO_PI;
+
 unsigned int palloc()
 {
     // TODO
+    // Scan AT for non-kernel-reserved pages
+    for(unsigned int idx = last_allocated_idx; idx <= VM_USERHI_PI - 1; idx++){
+        if(at_is_norm(idx) == 1 && at_is_allocated(idx) == 0){
+            // Found page with normal permissions + is not allocated
+            at_set_allocated(idx, 1);
+            last_allocated_idx = idx;
+            return idx;
+        }
+    }
+    // No such page found
     return 0;
 }
 
@@ -38,4 +52,10 @@ unsigned int palloc()
 void pfree(unsigned int pfree_index)
 {
     // TODO
+    if(at_is_norm(pfree_index) && pfree_index >= VM_USERLO_PI && pfree_index < VM_USERHI_PI){
+        at_set_allocated(pfree_index, 0);
+        if(pfree_index < last_allocated_idx){
+            last_allocated_idx = pfree_index;
+        }
+    }
 }
