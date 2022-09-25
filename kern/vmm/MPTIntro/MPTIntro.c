@@ -36,6 +36,7 @@ unsigned int IDPTbl[1024][1024] gcc_aligned(PAGESIZE);
 void set_pdir_base(unsigned int index)
 {
     // TODO
+	set_cr3(PDirPool[index]);
 }
 
 // Returns the page directory entry # [pde_index] of the process # [proc_index].
@@ -43,7 +44,7 @@ void set_pdir_base(unsigned int index)
 unsigned int get_pdir_entry(unsigned int proc_index, unsigned int pde_index)
 {
     // TODO
-    return 0;
+    return (unsigned int) PDirPool[proc_index][pde_index];
 }
 
 // Sets the specified page directory entry with the start address of physical
@@ -53,6 +54,10 @@ void set_pdir_entry(unsigned int proc_index, unsigned int pde_index,
                     unsigned int page_index)
 {
     // TODO
+	uintptr_t page_dir_entry = page_index << 12;
+	page_dir_entry = page_dir_entry | PT_PERM_PTU;
+
+	PDirPool[proc_index][pde_index] = (unsigned int *) page_dir_entry;
 }
 
 // Sets the page directory entry # [pde_index] for the process # [proc_index]
@@ -62,6 +67,7 @@ void set_pdir_entry(unsigned int proc_index, unsigned int pde_index,
 void set_pdir_entry_identity(unsigned int proc_index, unsigned int pde_index)
 {
     // TODO
+	PDirPool[proc_index][pde_index] = IDPTbl[proc_index];
 }
 
 // Removes the specified page directory entry (sets the page directory entry to 0).
