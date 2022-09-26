@@ -67,7 +67,7 @@ void set_pdir_entry(unsigned int proc_index, unsigned int pde_index,
 void set_pdir_entry_identity(unsigned int proc_index, unsigned int pde_index)
 {
     // TODO
-	PDirPool[proc_index][pde_index] = IDPTbl[proc_index];
+	PDirPool[proc_index][pde_index] = (unsigned int *) ((uintptr_t)IDPTbl[pde_index] | PT_PERM_PTU);
 }
 
 // Removes the specified page directory entry (sets the page directory entry to 0).
@@ -75,6 +75,7 @@ void set_pdir_entry_identity(unsigned int proc_index, unsigned int pde_index)
 void rmv_pdir_entry(unsigned int proc_index, unsigned int pde_index)
 {
     // TODO
+    PDirPool[proc_index][pde_index] = (unsigned int *) 0;
 }
 
 // Returns the specified page table entry.
@@ -83,7 +84,12 @@ unsigned int get_ptbl_entry(unsigned int proc_index, unsigned int pde_index,
                             unsigned int pte_index)
 {
     // TODO
-    return 0;
+    unsigned int * pdir_entry = (unsigned int *) get_pdir_entry(proc_index, pde_index);
+
+    // need to check permissions?
+
+    return pdir_entry[pte_index];
+
 }
 
 // Sets the specified page table entry with the start address of physical page # [page_index]
@@ -93,6 +99,13 @@ void set_ptbl_entry(unsigned int proc_index, unsigned int pde_index,
                     unsigned int perm)
 {
     // TODO
+    unsigned int pdir_entry = get_pdir_entry(proc_index, pde_index);
+    // check if the page table is present
+    if((pdir_entry & 0x1) > 0){
+        // go into the page table
+        unsigned int * ptable = (unsigned int *) pdir_entry;
+        ptable[pte_index] = (page_index << 12) | perm;
+    }
 }
 
 // Sets up the specified page table entry in IDPTbl as the identity map.
@@ -101,6 +114,7 @@ void set_ptbl_entry_identity(unsigned int pde_index, unsigned int pte_index,
                              unsigned int perm)
 {
     // TODO
+    IDPTbl[pde_index][pte_index] = ((pde_index << 22) + (pte_index << 12)) | perm;
 }
 
 // Sets the specified page table entry to 0.
@@ -108,4 +122,11 @@ void rmv_ptbl_entry(unsigned int proc_index, unsigned int pde_index,
                     unsigned int pte_index)
 {
     // TODO
+    unsigned int pdir_entry = get_pdir_entry(proc_index, pde_index);
+    // check if the page table is present
+    if((pdir_entry & 0x1) > 0){
+        // go into the page table
+        unsigned int * ptable = (unsigned int *) pdir_entry;
+        ptable[pte_index] = 0;
+    }
 }
