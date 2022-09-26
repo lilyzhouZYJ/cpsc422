@@ -85,11 +85,7 @@ unsigned int get_ptbl_entry(unsigned int proc_index, unsigned int pde_index,
 {
     // TODO
     unsigned int * pdir_entry = (unsigned int *) get_pdir_entry(proc_index, pde_index);
-
-    // need to check permissions?
-
     return pdir_entry[pte_index];
-
 }
 
 // Sets the specified page table entry with the start address of physical page # [page_index]

@@ -10,26 +10,41 @@
 unsigned int get_ptbl_entry_by_va(unsigned int proc_index, unsigned int vaddr)
 {
     // TODO
-    return 0;
+    unsigned int pde_index = vaddr >> 22;
+    unsigned int pte_index = (vaddr >> 12) | 0x3ff;
+    unsigned int ptbl_entry = get_ptbl_entry(proc_index, pde_index, pte_index);
+
+    // Check if the mapping exists
+    if((ptbl_entry & 0x1) == 0){
+        return 0;
+    } else {
+        return ptbl_entry;
+    }
 }
 
 // Returns the page directory entry corresponding to the given virtual address.
 unsigned int get_pdir_entry_by_va(unsigned int proc_index, unsigned int vaddr)
 {
     // TODO
-    return 0;
+    unsigned int pde_index = vaddr >> 22;
+    return get_pdir_entry(proc_index, pde_index);
 }
 
 // Removes the page table entry for the given virtual address.
 void rmv_ptbl_entry_by_va(unsigned int proc_index, unsigned int vaddr)
 {
     // TODO
+    unsigned int pde_index = vaddr >> 22;
+    unsigned int pte_index = (vaddr >> 12) | 0x3ff;
+    rmv_ptbl_entry(proc_index, pde_index, pte_index);
 }
 
 // Removes the page directory entry for the given virtual address.
 void rmv_pdir_entry_by_va(unsigned int proc_index, unsigned int vaddr)
 {
     // TODO
+    unsigned int pde_index = vaddr >> 22;
+    rmv_pdir_entry(proc_index, pde_index);
 }
 
 // Maps the virtual address [vaddr] to the physical page # [page_index] with permission [perm].
@@ -38,6 +53,9 @@ void set_ptbl_entry_by_va(unsigned int proc_index, unsigned int vaddr,
                           unsigned int page_index, unsigned int perm)
 {
     // TODO
+    unsigned int pde_index = vaddr >> 22;
+    unsigned int pte_index = (vaddr >> 12) | 0x3ff;
+    set_ptbl_entry(proc_index, pde_index, pte_index, page_index, perm);
 }
 
 // Registers the mapping from [vaddr] to physical page # [page_index] in the page directory.
@@ -45,6 +63,8 @@ void set_pdir_entry_by_va(unsigned int proc_index, unsigned int vaddr,
                           unsigned int page_index)
 {
     // TODO
+    unsigned int pde_index = vaddr >> 22;
+    set_pdir_entry(proc_index, pde_index, page_index);
 }
 
 // Initializes the identity page table.
@@ -57,4 +77,15 @@ void idptbl_init(unsigned int mbi_addr)
     container_init(mbi_addr);
 
     // TODO
+    // for(unsigned int page_id = 0; page_id < NUM_PAGES; page_id++){
+    //     unsigned int pde_index = page_id >> 10;
+    //     unsigned int pte_index = page_id & 0x3ff;
+    //     if(page_id >= VM_USERLO_PI && page_id < VM_USERHI_PI){
+    //         // user page
+    //         set_ptbl_entry_identity(pde_index, pte_index, PTE_P | PTE_W);
+    //     } else {
+    //         // kernel page
+    //         set_ptbl_entry_identity(pde_index, pte_index, PTE_P | PTE_W | PTE_G);
+    //     }
+    // }
 }
