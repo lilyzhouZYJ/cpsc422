@@ -67,7 +67,8 @@ void set_pdir_entry(unsigned int proc_index, unsigned int pde_index,
 void set_pdir_entry_identity(unsigned int proc_index, unsigned int pde_index)
 {
     // TODO
-	PDirPool[proc_index][pde_index] = (unsigned int *) ((uintptr_t)IDPTbl[pde_index] | PT_PERM_PTU);
+	uintptr_t addr = (uintptr_t) &(IDPTbl[pde_index]); // address of page directory # [pde_index] in IDPTbl
+	PDirPool[proc_index][pde_index] = (unsigned int *) (addr | PT_PERM_PTU);
 }
 
 // Removes the specified page directory entry (sets the page directory entry to 0).
