@@ -1,6 +1,13 @@
 #include <lib/x86.h>
+#include <lib/debug.h>
 
 #include "import.h"
+
+#define PAGESIZE     4096
+#define VM_USERLO    0x40000000
+#define VM_USERHI    0xF0000000
+#define VM_USERLO_PI (VM_USERLO / PAGESIZE)
+#define VM_USERHI_PI (VM_USERHI / PAGESIZE)
 
 /**
  * Returns the page table entry corresponding to the virtual address,
@@ -77,15 +84,22 @@ void idptbl_init(unsigned int mbi_addr)
     container_init(mbi_addr);
 
     // TODO
-    // for(unsigned int page_id = 0; page_id < NUM_PAGES; page_id++){
-    //     unsigned int pde_index = page_id >> 10;
-    //     unsigned int pte_index = page_id & 0x3ff;
-    //     if(page_id >= VM_USERLO_PI && page_id < VM_USERHI_PI){
-    //         // user page
-    //         set_ptbl_entry_identity(pde_index, pte_index, PTE_P | PTE_W);
-    //     } else {
-    //         // kernel page
-    //         set_ptbl_entry_identity(pde_index, pte_index, PTE_P | PTE_W | PTE_G);
-    //     }
-    // }
+	// KERN_DEBUG("\n vm_userlo: %u, vm_userhi: %u\n\n", VM_USERLO_PI, VM_USERHI_PI);
+
+	unsigned int pde_user_lo = VM_USERLO_PI >> 10;
+	unsigned int pde_user_hi = VM_USERHI_PI >> 10;
+
+	for(unsigned int pde_index = 0; pde_index < 1024; pde_index++){
+		if(pde_index < pde_user_lo || pde_index >= pde_user_hi){
+			// kernel page
+			for(unsigned int pte_index = 0; pte_index < 1024; pte_index++){
+				set_ptbl_entry_identity(pde_index, pte_index, PTE_P | PTE_W | PTE_G);
+			}
+		} else {
+			// user page
+			for(unsigned int pte_index = 0; pte_index < 1024; pte_index++){
+				set_ptbl_entry_identity(pde_index, pte_index, PTE_P | PTE_W);
+			}
+		}
+	}
 }
