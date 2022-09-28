@@ -32,6 +32,12 @@ unsigned int *PDirPool[NUM_IDS][1024] gcc_aligned(PAGESIZE);
  */
 unsigned int IDPTbl[1024][1024] gcc_aligned(PAGESIZE);
 
+// Remove permissions from page table entry / page directory entry
+unsigned int removePerms(unsigned int entry){
+    entry = (entry >> 12 << 12);
+    return entry;
+}
+
 // Sets the CR3 register with the start address of the page structure for process # [index].
 void set_pdir_base(unsigned int index)
 {
@@ -55,7 +61,7 @@ void set_pdir_entry(unsigned int proc_index, unsigned int pde_index,
 {
     // TODO
 	uintptr_t page_dir_entry = page_index << 12;
-	page_dir_entry = page_dir_entry | PT_PERM_PTU;
+	page_dir_entry = (page_dir_entry | PT_PERM_PTU);
 
 	PDirPool[proc_index][pde_index] = (unsigned int *) page_dir_entry;
 }
@@ -85,8 +91,16 @@ unsigned int get_ptbl_entry(unsigned int proc_index, unsigned int pde_index,
                             unsigned int pte_index)
 {
     // TODO
-    unsigned int * pdir_entry = (unsigned int *) get_pdir_entry(proc_index, pde_index);
-    return pdir_entry[pte_index];
+    unsigned int pdir_entry = get_pdir_entry(proc_index, pde_index);
+
+    // Check if the page directory entry is mapped
+    if((pdir_entry & PTE_P) > 0){
+        // Remove permissions
+        pdir_entry = removePerms(pdir_entry);
+        return ((unsigned int *)pdir_entry)[pte_index];
+    } else {
+        return 0;
+    }
 }
 
 // Sets the specified page table entry with the start address of physical page # [page_index]
@@ -98,10 +112,12 @@ void set_ptbl_entry(unsigned int proc_index, unsigned int pde_index,
     // TODO
     unsigned int pdir_entry = get_pdir_entry(proc_index, pde_index);
     // check if the page table is present
-    if((pdir_entry & 0x1) > 0){
+    if((pdir_entry & PTE_P) > 0){
+        // Remove permissions
+        pdir_entry = removePerms(pdir_entry);
         // go into the page table
         unsigned int * ptable = (unsigned int *) pdir_entry;
-        ptable[pte_index] = (page_index << 12) | perm;
+        ptable[pte_index] = ((page_index << 12) | perm);
     }
 }
 
@@ -111,7 +127,7 @@ void set_ptbl_entry_identity(unsigned int pde_index, unsigned int pte_index,
                              unsigned int perm)
 {
     // TODO
-    IDPTbl[pde_index][pte_index] = ((pde_index << 22) + (pte_index << 12)) | perm;
+    IDPTbl[pde_index][pte_index] = (((pde_index << 22) + (pte_index << 12)) | perm);
 }
 
 // Sets the specified page table entry to 0.
@@ -121,7 +137,9 @@ void rmv_ptbl_entry(unsigned int proc_index, unsigned int pde_index,
     // TODO
     unsigned int pdir_entry = get_pdir_entry(proc_index, pde_index);
     // check if the page table is present
-    if((pdir_entry & 0x1) > 0){
+    if((pdir_entry & PTE_P) > 0){
+        // Remove permissions
+        pdir_entry = removePerms(pdir_entry);
         // go into the page table
         unsigned int * ptable = (unsigned int *) pdir_entry;
         ptable[pte_index] = 0;

@@ -18,14 +18,14 @@ unsigned int get_ptbl_entry_by_va(unsigned int proc_index, unsigned int vaddr)
 {
     // TODO
     unsigned int pde_index = vaddr >> 22;
-    unsigned int pte_index = (vaddr >> 12) | 0x3ff;
+    unsigned int pte_index = ((vaddr >> 12) & 0x3ff);
     unsigned int ptbl_entry = get_ptbl_entry(proc_index, pde_index, pte_index);
 
     // Check if the mapping exists
-    if((ptbl_entry & 0x1) == 0){
-        return 0;
-    } else {
+    if((ptbl_entry & PTE_P) > 0){
         return ptbl_entry;
+    } else {
+        return 0;
     }
 }
 
@@ -42,7 +42,7 @@ void rmv_ptbl_entry_by_va(unsigned int proc_index, unsigned int vaddr)
 {
     // TODO
     unsigned int pde_index = vaddr >> 22;
-    unsigned int pte_index = (vaddr >> 12) | 0x3ff;
+    unsigned int pte_index = ((vaddr >> 12) & 0x3ff);
     rmv_ptbl_entry(proc_index, pde_index, pte_index);
 }
 
@@ -61,7 +61,7 @@ void set_ptbl_entry_by_va(unsigned int proc_index, unsigned int vaddr,
 {
     // TODO
     unsigned int pde_index = vaddr >> 22;
-    unsigned int pte_index = (vaddr >> 12) | 0x3ff;
+    unsigned int pte_index = ((vaddr >> 12) & 0x3ff);
     set_ptbl_entry(proc_index, pde_index, pte_index, page_index, perm);
 }
 
@@ -84,8 +84,6 @@ void idptbl_init(unsigned int mbi_addr)
     container_init(mbi_addr);
 
     // TODO
-	// KERN_DEBUG("\n vm_userlo: %u, vm_userhi: %u\n\n", VM_USERLO_PI, VM_USERHI_PI);
-
 	unsigned int pde_user_lo = VM_USERLO_PI >> 10;
 	unsigned int pde_user_hi = VM_USERHI_PI >> 10;
 

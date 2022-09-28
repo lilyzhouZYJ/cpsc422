@@ -3,6 +3,9 @@
 
 #include "import.h"
 
+// Remove permissions from page table entry / page directory entry
+unsigned int removePerms(unsigned int entry);
+
 /**
  * Sets the entire page map for process 0 as the identity map.
  * Note that part of the task is already completed by pdir_init.
@@ -14,6 +17,9 @@ void pdir_init_kern(unsigned int mbi_addr)
     pdir_init(mbi_addr);
 
     //TODO
+    for(unsigned int pde_index = 0; pde_index < 1024; pde_index++){
+        set_pdir_entry_identity(0, pde_index);
+    }
 }
 
 /**
@@ -28,7 +34,19 @@ unsigned int map_page(unsigned int proc_index, unsigned int vaddr,
                       unsigned int page_index, unsigned int perm)
 {
     // TODO
-    return 0;
+    unsigned int page_dir_entry = get_pdir_entry_by_va(proc_index, vaddr);
+    if((page_dir_entry & PTE_P) == 0){
+        // Page is not set up; need to allocate the page table
+        unsigned int page_table_index = alloc_ptbl(proc_index, vaddr);
+        if(page_table_index == 0){
+            // No page can be allocated
+            return MagicNumber;
+        }
+    }
+
+    set_ptbl_entry_by_va(proc_index, vaddr, page_index, perm);
+
+    return get_pdir_entry_by_va(proc_index, vaddr);
 }
 
 /**
@@ -42,5 +60,18 @@ unsigned int map_page(unsigned int proc_index, unsigned int vaddr,
 unsigned int unmap_page(unsigned int proc_index, unsigned int vaddr)
 {
     // TODO
-    return 0;
+    unsigned int page_dir_entry = get_pdir_entry_by_va(proc_index, vaddr);
+    if((page_dir_entry & PTE_P) == 0){
+        // Second-level page table is not present
+        return 0;
+    }
+
+    unsigned int page_table_entry = get_ptbl_entry_by_va(proc_index, vaddr);
+    if((page_table_entry & PTE_P) == 0){
+        // Page is not present
+        return 0;
+    }
+
+    rmv_ptbl_entry_by_va(proc_index, vaddr);
+    return page_table_entry;
 }
