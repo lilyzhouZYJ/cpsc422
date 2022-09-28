@@ -12,3 +12,8 @@ List here the following info:
 2. whether you coded this assignment together, and if not, who worked on which part
 3. brief description of what you have implemented
 4. and anything else you would like us to know
+
+Brief description of what I have implemented:
+- Using containers as an abstraction for physical memory management.
+- Setting up a two-level page table structure, which allows us to translate a virtual address into a physical page address.
+- Setting up the virtual memory management layers, which enables us to use virtual memory as an abstract layer over the physical pages.
