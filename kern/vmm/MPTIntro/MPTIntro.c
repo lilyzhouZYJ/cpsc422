@@ -34,7 +34,7 @@ unsigned int IDPTbl[1024][1024] gcc_aligned(PAGESIZE);
 
 // Remove permissions from page table entry / page directory entry
 unsigned int removePerms(unsigned int entry){
-    entry = (entry >> 12 << 12);
+    entry = ((entry >> 12) << 12);
     return entry;
 }
 
@@ -73,7 +73,7 @@ void set_pdir_entry(unsigned int proc_index, unsigned int pde_index,
 void set_pdir_entry_identity(unsigned int proc_index, unsigned int pde_index)
 {
     // TODO
-	uintptr_t addr = (uintptr_t) &(IDPTbl[pde_index]); // address of page directory # [pde_index] in IDPTbl
+	uintptr_t addr = (uintptr_t) IDPTbl[pde_index]; // address of page directory # [pde_index] in IDPTbl
 	PDirPool[proc_index][pde_index] = (unsigned int *) (addr | PT_PERM_PTU);
 }
 

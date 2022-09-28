@@ -24,7 +24,12 @@ unsigned int alloc_page(unsigned int proc_index, unsigned int vaddr,
 		return MagicNumber;
 	}
 
-    return map_page(proc_index, vaddr, page_index, perm);
+    unsigned int entry = map_page(proc_index, vaddr, page_index, perm);
+	if(entry == MagicNumber){
+		// Failed to map virtual address to page; need to free the page
+		container_free(proc_index, page_index);
+	}
+	return entry;
 }
 
 /**

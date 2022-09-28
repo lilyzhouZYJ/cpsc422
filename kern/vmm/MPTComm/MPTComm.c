@@ -28,6 +28,8 @@ void pdir_init(unsigned int mbi_addr)
 			if(pde_index < pde_user_lo || pde_index >= pde_user_hi){
 				// kernel page
 				set_pdir_entry_identity(proc_index, pde_index);
+			} else {
+				rmv_pdir_entry(proc_index, pde_index);
 			}
 		}
 	}
@@ -69,7 +71,7 @@ void free_ptbl(unsigned int proc_index, unsigned int vaddr)
 {
     // TODO
 	// Get physical page index
-	unsigned int page_index = get_pdir_entry_by_va(proc_index, vaddr);
+	unsigned int page_index = get_pdir_entry_by_va(proc_index, vaddr) >> 12;
 
 	// Remove page directory entry
 	rmv_pdir_entry_by_va(proc_index, vaddr);

@@ -151,9 +151,11 @@ unsigned int container_alloc(unsigned int id)
 void container_free(unsigned int id, unsigned int page_index)
 {
     // TODO
-	// Free page
-	pfree(page_index);
-
-	// Update container
-	CONTAINER[id].usage -= 1;
+	if(at_is_allocated(page_index)){
+		// Free page
+		pfree(page_index);
+		
+		// Update container
+		CONTAINER[id].usage -= 1;
+	}
 }
