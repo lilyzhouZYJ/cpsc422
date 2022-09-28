@@ -17,7 +17,14 @@ unsigned int alloc_page(unsigned int proc_index, unsigned int vaddr,
                         unsigned int perm)
 {
     // TODO
-    return 0;
+	// Allocate a page
+	unsigned int page_index = container_alloc(proc_index);
+	if(page_index == 0){
+		// No page could be allocated
+		return MagicNumber;
+	}
+
+    return map_page(proc_index, vaddr, page_index, perm);
 }
 
 /**
