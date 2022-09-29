@@ -45,7 +45,19 @@ int MPTNew_test1()
 int MPTNew_test_own()
 {
     // TODO (optional)
-    // dprintf("own test passed.\n");
+	for(int proc_id = 1; proc_id < 5; proc_id++){
+		alloc_mem_quota(proc_id, 50);
+		unsigned int new_proc = container_split(proc_id, 10);
+		unsigned int vaddr1 = 0x70000000;
+		unsigned int alloced_page = alloc_page(new_proc, vaddr1, 7);
+		if(alloced_page == 0){
+			dprintf("error at: %u\n", new_proc);
+			return 1;
+		}
+		dprintf("proc: %u, vaddr: %u, alloced_page: %u\n", new_proc, vaddr1, alloced_page);
+	}
+	
+    dprintf("own test passed.\n");
     return 0;
 }
 
