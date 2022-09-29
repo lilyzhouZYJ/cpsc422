@@ -24,8 +24,6 @@ unsigned int alloc_page(unsigned int proc_index, unsigned int vaddr,
 		return MagicNumber;
 	}
 
-	dprintf("new page: %u\n", page_index);
-
     unsigned int entry = map_page(proc_index, vaddr, page_index, perm);
 	if(entry == MagicNumber){
 		// Failed to map virtual address to page; need to free the page
