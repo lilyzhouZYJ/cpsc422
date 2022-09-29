@@ -1,4 +1,5 @@
 #include <lib/debug.h>
+#include <lib/types.h>
 #include "import.h"
 
 #define PAGESIZE     4096
@@ -6,6 +7,8 @@
 #define VM_USERHI    0xF0000000
 #define VM_USERLO_PI (VM_USERLO / PAGESIZE)
 #define VM_USERHI_PI (VM_USERHI / PAGESIZE)
+
+static unsigned int last_palloc_index = VM_USERLO_PI;
 
 /**
  * Allocate a physical page.
@@ -27,6 +30,7 @@ unsigned int last_allocated_idx = VM_USERLO_PI;
 
 unsigned int palloc()
 {
+<<<<<<< HEAD
     // TODO
     // Scan AT for non-kernel-reserved pages
     for(unsigned int idx = last_allocated_idx; idx <= VM_USERHI_PI - 1; idx++){
@@ -39,6 +43,38 @@ unsigned int palloc()
     }
     // No such page found
     return 0;
+=======
+    unsigned int nps;
+    unsigned int palloc_index;
+    unsigned int palloc_free_index;
+    bool first;
+
+    nps = get_nps();
+    palloc_index = last_palloc_index;
+    palloc_free_index = nps;
+    first = TRUE;
+
+    while ((palloc_index != last_palloc_index || first) && palloc_free_index == nps) {
+        first = FALSE;
+        if (at_is_norm(palloc_index) && !at_is_allocated(palloc_index)) {
+            palloc_free_index = palloc_index;
+        }
+        palloc_index++;
+        if (palloc_index >= VM_USERHI_PI) {
+            palloc_index = VM_USERLO_PI;
+        }
+    }
+
+    if (palloc_free_index == nps) {
+        palloc_free_index = 0;
+        last_palloc_index = VM_USERLO_PI;
+    } else {
+        at_set_allocated(palloc_free_index, 1);
+        last_palloc_index = palloc_free_index;
+    }
+
+    return palloc_free_index;
+>>>>>>> release/lab1-solution
 }
 
 /**
@@ -51,6 +87,7 @@ unsigned int palloc()
  */
 void pfree(unsigned int pfree_index)
 {
+<<<<<<< HEAD
     // TODO
     if(at_is_norm(pfree_index) && pfree_index >= VM_USERLO_PI && pfree_index < VM_USERHI_PI){
         at_set_allocated(pfree_index, 0);
@@ -58,4 +95,7 @@ void pfree(unsigned int pfree_index)
             last_allocated_idx = pfree_index;
         }
     }
+=======
+    at_set_allocated(pfree_index, 0);
+>>>>>>> release/lab1-solution
 }

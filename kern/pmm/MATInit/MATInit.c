@@ -1,4 +1,5 @@
 #include <lib/debug.h>
+#include <lib/types.h>
 #include "import.h"
 
 #define PAGESIZE     4096
@@ -20,8 +21,8 @@
 void pmem_init(unsigned int mbi_addr)
 {
     unsigned int nps;
-
-    // TODO: Define your local variables here.
+    unsigned int pg_idx, pmmap_size, cur_addr, highest_addr;
+    unsigned int entry_idx, flag, isnorm, start, len;
 
     // Calls the lower layer initialization primitive.
     // The parameter mbi_addr should not be used in the further code.
@@ -33,25 +34,18 @@ void pmem_init(unsigned int mbi_addr)
      * Hint: Think of it as the highest address in the ranges of the memory map table,
      *       divided by the page size.
      */
-    // TODO
-    unsigned int num_rows = get_size();
-    unsigned int max_addr = 0;
-    for(unsigned int r = 0; r < num_rows; r++){
-        unsigned int curr_max_addr = get_mms(r) + get_mml(r);
-        if(curr_max_addr == 0xfffffffe){
-            // bug fix, see https://edstem.org/us/courses/21713/discussion/1775037
-            curr_max_addr += 1;
+    nps = 0;
+    entry_idx = 0;
+    pmmap_size = get_size();
+    while (entry_idx < pmmap_size) {
+        cur_addr = get_mms(entry_idx) + get_mml(entry_idx);
+        if (nps < cur_addr) {
+            nps = cur_addr;
         }
-        if(curr_max_addr > max_addr){
-            max_addr = curr_max_addr;
-        }
-    }
-    if(max_addr % PAGESIZE == 0){
-        nps = max_addr / PAGESIZE;
-    } else {
-        nps = max_addr / PAGESIZE + 1;
+        entry_idx++;
     }
 
+    nps = ROUNDDOWN(nps, PAGESIZE) / PAGESIZE;
     set_nps(nps);  // Setting the value computed above to NUM_PAGES.
 
     /**
@@ -77,42 +71,30 @@ void pmem_init(unsigned int mbi_addr)
      *    the addresses are in a usable range. Currently, we do not utilize partial pages,
      *    so in that case, you should consider those pages as unavailable.
      */
-    // TODO
-    // Initialize all page permission to 0
-    for(unsigned int idx = 0; idx <= nps - 1; idx++){
-        at_set_perm(idx, 0);
-    }
-    
-    // Kernel-reserved pages: perm = 1
-    for(unsigned int idx = 0; idx <= VM_USERLO_PI - 1; idx++){
-        at_set_perm(idx, 1);
-    }
-    for(unsigned int idx = VM_USERHI_PI; idx <= nps - 1; idx++){
-        at_set_perm(idx, 1);
-    }
-
-    // Other pages: explore memory map table
-    for(unsigned int r = 0; r < num_rows; r++){
-        if(is_usable(r) == 1){
-            // Range is available; figure out what pages are in the range
-            unsigned int start_addr = get_mms(r);
-            unsigned int end_addr = start_addr + get_mml(r);
-            
-            unsigned int start_page_idx;
-            if(start_addr % PAGESIZE == 0){
-                start_page_idx = start_addr / PAGESIZE;
-            } else {
-                start_page_idx = start_addr / PAGESIZE + 1;
+    pg_idx = 0;
+    while (pg_idx < nps) {
+        if (pg_idx < VM_USERLO_PI || VM_USERHI_PI <= pg_idx) {
+            at_set_perm(pg_idx, 1);
+        } else {
+            entry_idx = 0;
+            flag = 0;
+            isnorm = 0;
+            while (entry_idx < pmmap_size && !flag) {
+                isnorm = is_usable(entry_idx);
+                start = get_mms(entry_idx);
+                len = get_mml(entry_idx);
+                if (start <= pg_idx * PAGESIZE && (pg_idx + 1) * PAGESIZE <= start + len) {
+                    flag = 1;
+                }
+                entry_idx++;
             }
 
-            unsigned int end_page_idx = end_addr / PAGESIZE; // end is exclusive
-
-            // Set perm = 2 in AT if the page is not kernel only
-            for(unsigned int idx = start_page_idx; idx < end_page_idx; idx++){
-                if(idx >= VM_USERLO_PI && idx < VM_USERHI_PI){
-                    at_set_perm(idx, 2);
-                }
+            if (flag && isnorm) {
+                at_set_perm(pg_idx, 2);
+            } else {
+                at_set_perm(pg_idx, 0);
             }
         }
+        pg_idx++;
     }
 }
