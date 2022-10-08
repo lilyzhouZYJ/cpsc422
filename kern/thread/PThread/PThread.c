@@ -18,7 +18,19 @@ void thread_init(unsigned int mbi_addr)
 unsigned int thread_spawn(void *entry, unsigned int id, unsigned int quota)
 {
     // TODO
-    return 0;
+	// Allocate a new child thread
+	unsigned int child_pid = kctx_new(entry, id, quota);
+	if(child_pid == NUM_IDS){
+		return NUM_IDS;
+	}
+
+	// Set child thread to ready
+	tcb_set_state(child_pid, TSTATE_READY);
+
+	// Push child to the ready queue
+	tqueue_enqueue(NUM_IDS, child_pid);
+
+    return child_pid;
 }
 
 /**
@@ -33,4 +45,21 @@ unsigned int thread_spawn(void *entry, unsigned int id, unsigned int quota)
 void thread_yield(void)
 {
     // TODO
+	// Set curr thread to ready and push it to ready queue
+	unsigned int curr_pid = get_curid();
+	tcb_set_state(curr_pid, TSTATE_READY);
+	tqueue_enqueue(NUM_IDS, curr_pid);
+	
+	// Pop next thread from ready queue
+	unsigned int next_thread_pid = tqueue_dequeue(NUM_IDS);
+	// Set it to running
+	tcb_set_state(next_thread_pid, TSTATE_RUN);
+	
+	// Set current thread ID
+	set_curid(next_thread_pid);
+
+	// Switch to new kernel context
+	if(next_thread_pid != curr_pid){
+		kctx_switch(curr_pid, next_thread_pid);
+	}
 }

@@ -13,4 +13,7 @@ void tcb_init(unsigned int mbi_addr)
     paging_init(mbi_addr);
 
     // TODO
+	for(unsigned int pid = 0; pid < NUM_IDS; pid++){
+		tcb_init_at_id(pid);
+	}
 }
