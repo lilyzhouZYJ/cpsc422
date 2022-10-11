@@ -22,7 +22,8 @@ cswitch:
 	movl	0x8(%edx), %esi		/* %esi <- kctx_pool[to_pid].esi */
 	movl	0xc(%edx), %ebx		/* %ebx <- kctx_pool[to_pid].ebx */
 	movl	0x10(%edx), %ebp 	/* %ebp <- kctx_pool[to_pid].ebp */
-	jmp		0x14(%edx)
+	movl	0x14(%edx), %eax	/* make the value at (%esp) the new return address */
+	movl	%eax, (%esp)
 
 	xor	%eax, %eax
 	ret

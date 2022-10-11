@@ -60,6 +60,7 @@ void syscall_set_errno(unsigned int errno)
     // TODO
 	int curr_pid = get_curid();
 	uctx_pool[curr_pid].err = errno;
+	uctx_pool[curr_pid].regs.eax = errno;
 }
 
 /**

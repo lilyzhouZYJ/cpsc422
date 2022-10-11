@@ -33,7 +33,11 @@ unsigned int kctx_new(void *entry, unsigned int id, unsigned int quota)
 
 	// Set the eip and esp
 	kctx_set_eip(child_id, entry);
-	kctx_set_esp(child_id, &(STACK_LOC[child_id])+PAGESIZE-1);
+	kctx_set_esp(child_id, STACK_LOC[child_id]+PAGESIZE);
+	// Note: does not need to be STACK_LOC[child_id]+PAGESIZE-1 because
+	// x86 push is "first decrement, then write", so if ESP is set to just 
+	// over top of the stack, the next push would first decrease ESP so 
+	// that it falls within the stack page, then write the argument.
 	
 	return child_id;
 }
