@@ -78,6 +78,35 @@ extern uint8_t _binary___obj_user_fork_test_fork_test_start[];
 void sys_spawn(void)
 {
     // TODO
+	// Get arguments
+	unsigned int elf_id = syscall_get_arg2();
+	unsigned int quota = syscall_get_arg3();
+
+	// Get ELF address
+	void * elf_addr;
+	if(elf_id == 1) elf_addr = _binary___obj_user_pingpong_ping_start;
+	else if(elf_id == 2) elf_addr = _binary___obj_user_pingpong_pong_start;
+	else if(elf_id == 3) elf_addr = _binary___obj_user_pingpong_ding_start;
+	else if(elf_id == 4) elf_addr = _binary___obj_user_fork_test_fork_test_start;
+	else {
+		// Return NUM_IDS with error
+		syscall_set_errno(E_INVAL_PID);
+		syscall_set_retval1(NUM_IDS);
+		return;
+	}
+
+	// Create process
+	unsigned int pid = proc_create(elf_addr, quota);
+	if(pid == NUM_IDS) {
+		// Return NUM_IDS with error
+		syscall_set_errno(E_INVAL_PID);
+		syscall_set_retval1(NUM_IDS);
+		return;
+	}
+
+	// Return child PID and mark as successful
+	syscall_set_errno(E_SUCC);
+	syscall_set_retval1(pid);
 }
 
 /**
@@ -89,6 +118,8 @@ void sys_spawn(void)
 void sys_yield(void)
 {
     // TODO
+	thread_yield();
+	syscall_set_errno(E_SUCC); // set this before yield?
 }
 
 // Your implementation of fork

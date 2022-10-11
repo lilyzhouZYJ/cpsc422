@@ -17,12 +17,12 @@ cswitch:
 	movl	%esi, 0x14(%eax)	/* kctx_pool[from_pid].eip <- return address on stack */
 
 	/* TODO: load the new kernel context */
-	movl	(%eax), %esp		/* %esp <- kctx_pool[to_pid].esp */
-	movl	0x4(%eax), %edi		/* %edi <- kctx_pool[to_pid].edi */
-	movl	0x8(%eax), %esi		/* %esi <- kctx_pool[to_pid].esi */
-	movl	0xc(%eax), %ebx		/* %ebx <- kctx_pool[to_pid].ebx */
-	movl	0x10(%eax), %ebp 	/* %ebp <- kctx_pool[to_pid].ebp */
-	jmp		*0x14(%eax)
+	movl	(%edx), %esp		/* %esp <- kctx_pool[to_pid].esp */
+	movl	0x4(%edx), %edi		/* %edi <- kctx_pool[to_pid].edi */
+	movl	0x8(%edx), %esi		/* %esi <- kctx_pool[to_pid].esi */
+	movl	0xc(%edx), %ebx		/* %ebx <- kctx_pool[to_pid].ebx */
+	movl	0x10(%edx), %ebp 	/* %ebp <- kctx_pool[to_pid].ebp */
+	jmp		0x14(%edx)
 
 	xor	%eax, %eax
 	ret
