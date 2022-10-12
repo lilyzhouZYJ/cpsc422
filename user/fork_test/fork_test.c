@@ -11,7 +11,8 @@ int main(int argc, char **argv)
 
     pid = sys_fork();
 
-    if (pid == 0) {
+    if (pid == 0) { // failing to access pid???
+		printf("hello i'm here!!!!!!!!!!!");
         pid = sys_fork();
 
         if (pid == 0) {

@@ -21,6 +21,11 @@ void syscall_set_retval5(unsigned int retval);
 unsigned int proc_create(void *elf_addr, unsigned int quota);
 void thread_yield(void);
 
+// From MPTComm.c
+void copy_page_table(unsigned int from_proc_index, unsigned int to_proc_index);
+
+unsigned int proc_fork(void);
+
 #endif  /* _KERN_ */
 
 #endif  /* !_KERN_TRAP_TSYSCALL_H_ */
