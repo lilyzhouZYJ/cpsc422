@@ -58,9 +58,8 @@ unsigned int syscall_get_arg6(void)
 void syscall_set_errno(unsigned int errno)
 {
     // TODO
-	int curr_pid = get_curid();
-	uctx_pool[curr_pid].err = errno;
-	uctx_pool[curr_pid].regs.eax = errno;
+	uctx_pool[get_curid()].err = errno;
+	uctx_pool[get_curid()].regs.eax = errno;
 }
 
 /**
@@ -70,34 +69,29 @@ void syscall_set_errno(unsigned int errno)
 void syscall_set_retval1(unsigned int retval)
 {
     // TODO
-	int curr_pid = get_curid();
-    uctx_pool[curr_pid].regs.ebx = retval; // arg1: ebx
+    uctx_pool[get_curid()].regs.ebx = retval; // arg1: ebx
 }
 
 void syscall_set_retval2(unsigned int retval)
 {
     // TODO
-	int curr_pid = get_curid();
-    uctx_pool[curr_pid].regs.ecx = retval; // arg2: ecx
+    uctx_pool[get_curid()].regs.ecx = retval; // arg2: ecx
 }
 
 void syscall_set_retval3(unsigned int retval)
 {
     // TODO
-	int curr_pid = get_curid();
-    uctx_pool[curr_pid].regs.edx = retval; // arg3: edx
+    uctx_pool[get_curid()].regs.edx = retval; // arg3: edx
 }
 
 void syscall_set_retval4(unsigned int retval)
 {
     // TODO
-	int curr_pid = get_curid();
-    uctx_pool[curr_pid].regs.esi = retval; // arg4: esi
+    uctx_pool[get_curid()].regs.esi = retval; // arg4: esi
 }
 
 void syscall_set_retval5(unsigned int retval)
 {
     // TODO
-	int curr_pid = get_curid();
-    uctx_pool[curr_pid].regs.edi = retval; // arg5: edi
+    uctx_pool[get_curid()].regs.edi = retval; // arg5: edi
 }

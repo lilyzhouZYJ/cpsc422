@@ -7,25 +7,27 @@ int main(int argc, char **argv)
 {
     printf("idle\n");
 
-    pid_t ping_pid, pong_pid, ding_pid, fork_test_pid;
+    pid_t ping_pid, pong_pid, ding_pid;
 
-    if ((ping_pid = spawn(1, 1000)) != -1) {
-        printf("ping in process %d.\n", ping_pid);
-	} else {
-        printf("Failed to launch ping.\n");
-	}
+    // if ((ping_pid = spawn(1, 1000)) != -1) {
+    //     printf("ping in process %d.\n", ping_pid);
+	// } else {
+    //     printf("Failed to launch ping.\n");
+	// }
 
-    if ((pong_pid = spawn(2, 1000)) != -1) {
-        printf("pong in process %d.\n", pong_pid);
-	} else {
-        printf("Failed to launch pong.\n");
-	}
+    // if ((pong_pid = spawn(2, 1000)) != -1) {
+    //     printf("pong in process %d.\n", pong_pid);
+	// } else {
+    //     printf("Failed to launch pong.\n");
+	// }
 
-    if ((ding_pid = spawn(3, 1000)) != -1) {
-        printf("ding in process %d.\n", ding_pid);
-	} else {
-        printf("Failed to launch ding.\n");
-	}
+    // if ((ding_pid = spawn(3, 1000)) != -1) {
+    //     printf("ding in process %d.\n", ding_pid);
+	// } else {
+    //     printf("Failed to launch ding.\n");
+	// }
+
+	pid_t fork_test_pid;
 
 	if ((fork_test_pid = spawn(4, 1000)) != -1) {
         printf("fork test in process %d.\n", fork_test_pid);

@@ -74,8 +74,8 @@ void pgflt_handler(void)
     }
 
     // Uncomment this line to see information about the page fault
-    KERN_DEBUG("Page fault: VA 0x%08x, errno 0x%08x, process %d, EIP 0x%08x.\n",
-               fault_va, errno, cur_pid, uctx_pool[cur_pid].eip);
+    // KERN_DEBUG("Page fault: VA 0x%08x, errno 0x%08x, process %d, EIP 0x%08x.\n",
+    //            fault_va, errno, cur_pid, uctx_pool[cur_pid].eip);
 
     if (errno & PFE_PR) {
         KERN_PANIC("Permission denied: va = 0x%08x, errno = 0x%08x.\n",
@@ -96,8 +96,7 @@ void pgflt_handler(void)
 void exception_handler(void)
 {
     // TODO
-	unsigned int cur_pid = get_curid();
-	if(uctx_pool[cur_pid].trapno == T_PGFLT){
+	if(uctx_pool[get_curid()].trapno == T_PGFLT){
 		// Page fault
 		pgflt_handler();
 	} else {

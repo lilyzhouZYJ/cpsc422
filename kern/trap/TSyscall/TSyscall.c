@@ -126,13 +126,9 @@ void sys_yield(void)
 void sys_fork()
 {
     // TODO
-	unsigned int curr_pid = get_curid();
 	unsigned int child_pid = proc_fork();
 	if(child_pid == NUM_IDS){
 		// Error in fork
 		syscall_set_errno(E_INVAL_PID);
-	} else {
-		// Copy page table for child
-		// copy_page_table(curr_pid, child_pid);
 	}
 }

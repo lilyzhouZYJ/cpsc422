@@ -3,6 +3,7 @@
 
 #ifdef _KERN_
 
+unsigned int alloc_ptbl(unsigned int proc_index, unsigned int vaddr);
 unsigned int alloc_page(unsigned int proc_index, unsigned int vaddr,
                         unsigned int perm);
 void set_pdir_entry(unsigned int proc_index, unsigned int pde_index,
