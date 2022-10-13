@@ -4,6 +4,7 @@
 #include <lib/seg.h>
 #include <lib/trap.h>
 #include <lib/x86.h>
+#include <lib/string.h>
 
 #include "import.h"
 
@@ -52,17 +53,18 @@ unsigned int proc_fork()
 	unsigned int child_pid = thread_spawn((void *) proc_start_user, curr_pid, child_quota);
 
 	if (child_pid != NUM_IDS){
-		uctx_pool[child_pid].es = uctx_pool[curr_pid].es;
-        uctx_pool[child_pid].ds = uctx_pool[curr_pid].ds;
-        uctx_pool[child_pid].cs = uctx_pool[curr_pid].cs;
-        uctx_pool[child_pid].ss = uctx_pool[curr_pid].ss;
-        uctx_pool[child_pid].esp = uctx_pool[curr_pid].esp;
-        uctx_pool[child_pid].eflags = uctx_pool[curr_pid].eflags;
-        uctx_pool[child_pid].eip = uctx_pool[curr_pid].eip;
+		// Copy parent user context to child
+		memcpy(&uctx_pool[child_pid], &uctx_pool[curr_pid], sizeof(tf_t));
 
-		uctx_pool[child_pid].regs.ebx = 0; // return value for the child
+		// Return value for the child is 0
+		uctx_pool[child_pid].regs.ebx = 0;
+
+		copy_page_table(curr_pid, child_pid);
 	}
 
+	// Error will be handled by the caller of proc_fork()
+
+	// Return value for parent is child pid
 	uctx_pool[curr_pid].regs.ebx = child_pid;
 
 	return child_pid;

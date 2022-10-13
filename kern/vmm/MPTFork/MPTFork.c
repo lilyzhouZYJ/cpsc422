@@ -54,7 +54,7 @@ void copy_page_table(unsigned int from_proc_index, unsigned int to_proc_index)
 void copy_on_write(unsigned int pid, unsigned int vaddr)
 {
 	// Allocate new page for the vaddr
-	unsigned int page_index = container_alloc(pid);
+	unsigned int page_index = alloc_page(pid, vaddr, PT_PERM_PTU);
 	if(page_index == 0){
 		// TODO: what??
 	} else {
@@ -66,7 +66,5 @@ void copy_on_write(unsigned int pid, unsigned int vaddr)
 		void * orig_page = (void *) (orig_page_index << 12);
 		void * new_page = (void *) (page_index << 12);
 		memcpy(new_page, orig_page, PAGESIZE);
-
-		set_ptbl_entry_by_va(pid, vaddr, page_index, PT_PERM_PTU);
 	}
 }

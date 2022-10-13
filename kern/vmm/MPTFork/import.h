@@ -3,7 +3,8 @@
 
 #ifdef _KERN_
 
-unsigned int container_alloc(unsigned int id);
+unsigned int alloc_page(unsigned int proc_index, unsigned int vaddr,
+                        unsigned int perm);
 void set_pdir_entry(unsigned int proc_index, unsigned int pde_index,
                     unsigned int page_index);
 unsigned int get_pdir_entry(unsigned int proc_index, unsigned int pde_index);

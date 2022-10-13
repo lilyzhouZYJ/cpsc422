@@ -119,7 +119,7 @@ void sys_yield(void)
 {
     // TODO
 	thread_yield();
-	syscall_set_errno(E_SUCC); // set this before yield?
+	syscall_set_errno(E_SUCC);
 }
 
 // Your implementation of fork
@@ -129,9 +129,10 @@ void sys_fork()
 	unsigned int curr_pid = get_curid();
 	unsigned int child_pid = proc_fork();
 	if(child_pid == NUM_IDS){
-		// TODO: what
+		// Error in fork
+		syscall_set_errno(E_INVAL_PID);
 	} else {
-		// Copy page table
-		copy_page_table(curr_pid, child_pid);
+		// Copy page table for child
+		// copy_page_table(curr_pid, child_pid);
 	}
 }
