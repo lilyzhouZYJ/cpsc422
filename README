@@ -8,7 +8,16 @@ To use your solutions from lab 1: git merge lab1
 To use sample lab 1 solutions: copy files in samples/ to appropriate directories
 
 List here the following info:
-1. who you have worked with
+1. who you have worked with: NA
 2. whether you coded this assignment together, and if not, who worked on which part
 3. brief description of what you have implemented
 4. and anything else you would like us to know
+
+Description of what I've implemented:
+1. Thread and process management layer.
+2. Trap handling.
+3. Fork. In particularly, I implemented the mechanism of copy-on-write. When a process
+   forks a child, its page table is copied into the child, but the page tables of the
+   two processes are mapped to the same physical pages. The physical pages are then marked
+   as "copy-on-write" (COW), and if either process tries to write to a shared page, it
+   would then make a copy of that page before writing to it.
