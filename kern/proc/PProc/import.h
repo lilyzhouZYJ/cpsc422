@@ -11,8 +11,7 @@ unsigned int thread_spawn(void *entry, unsigned int id,
 unsigned int container_get_quota(unsigned int id);
 unsigned int container_get_usage(unsigned int id);
 
-// From MPTComm.c
-void copy_page_table(unsigned int from_proc_index, unsigned int to_proc_index);
+unsigned int copy_page_table(unsigned int from_proc_index, unsigned int to_proc_index);
 
 #endif  /* _KERN_ */
 

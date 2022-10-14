@@ -46,6 +46,7 @@ unsigned int proc_create(void *elf_addr, unsigned int quota)
 // Allocate half of the quota size remaining to the child.
 // Be really careful when you setup the user context of the child 
 // (think of the return value of fork in that context).
+// In the case of error, NUM_IDS will be returned.
 unsigned int proc_fork()
 {
 	unsigned int curr_pid = get_curid();
@@ -59,10 +60,12 @@ unsigned int proc_fork()
 		// Return value for the child is 0
 		uctx_pool[child_pid].regs.ebx = 0;
 
-		copy_page_table(curr_pid, child_pid);
+		unsigned int copy_res = copy_page_table(curr_pid, child_pid);
+		if(copy_res == 1){
+			// Error in copy page table
+			return NUM_IDS;
+		}
 	}
-
-	// Error will be handled by the caller of proc_fork()
 
 	// Return value for parent is child pid
 	uctx_pool[curr_pid].regs.ebx = child_pid;

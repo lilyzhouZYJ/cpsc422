@@ -16,8 +16,8 @@
 // Copy the page table from one process to another,
 // including both pdir and 2nd-level page table.
 // Also adjust the permissions accordingly.
-// TODO: handle error!
-void copy_page_table(unsigned int from_proc_index, unsigned int to_proc_index)
+// In the case of error, return 1; otherwise, return 0.
+unsigned int copy_page_table(unsigned int from_proc_index, unsigned int to_proc_index)
 {
 	for(unsigned int pde_index = VM_USERLO_PDE; pde_index < VM_USERHI_PDE; pde_index++)
 	{
@@ -33,7 +33,7 @@ void copy_page_table(unsigned int from_proc_index, unsigned int to_proc_index)
 		unsigned int page_table_index = alloc_ptbl(to_proc_index, vaddr);
 		if(page_table_index == 0){
 			// Failed to allocate physical page
-			continue;
+			return 1;
 		}
 
 		// Copy page table of old process to new page table by copying each PTE.
