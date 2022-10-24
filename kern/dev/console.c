@@ -8,6 +8,20 @@
 #include "serial.h"
 #include "keyboard.h"
 
+static spinlock_t cons_lk;
+
+void cons_spinlock_init(void) {
+    spinlock_init(&cons_lk);
+}
+
+void cons_lock(void) {
+    spinlock_acquire(&cons_lk);
+}
+
+void cons_unlock(void) {
+    spinlock_release(&cons_lk);
+}
+
 #define BUFLEN 1024
 static char linebuf[BUFLEN];
 
@@ -21,6 +35,9 @@ void cons_init()
     memset(&cons, 0x0, sizeof(cons));
     serial_init();
     video_init();
+
+	// Init spinlock
+	cons_spinlock_init();
 }
 
 void cons_intr(int (*proc)(void))
@@ -78,6 +95,8 @@ void putchar(char c)
 
 char *readline(const char *prompt)
 {
+	cons_lock();
+
     int i;
     char c;
 
@@ -89,6 +108,7 @@ char *readline(const char *prompt)
         c = getchar();
         if (c < 0) {
             dprintf("read error: %e\n", c);
+			cons_unlock();
             return NULL;
         } else if ((c == '\b' || c == '\x7f') && i > 0) {
             putchar('\b');
@@ -99,6 +119,7 @@ char *readline(const char *prompt)
         } else if (c == '\n' || c == '\r') {
             putchar('\n');
             linebuf[i] = 0;
+			cons_unlock();
             return linebuf;
         }
     }
