@@ -39,6 +39,19 @@ void trap_init(unsigned int cpu_idx)
     // TODO: for CPU # [cpu_idx], register appropriate trap handler for each trap number,
     // with trap_handler_register function defined above.
 
+	// Exceptions: 0-31
+	for(unsigned int exception_no = 0; exception_no <= 31; exception_no++){
+		trap_handler_register(cpu_idx, exception_no, exception_handler);
+	}
+	// Interrupts: 32-47
+	for(unsigned int int_no = 32; int_no <= 47; int_no++){
+		trap_handler_register(cpu_idx, int_no, interrupt_handler);
+	}
+	// System call
+	trap_handler_register(cpu_idx, T_SYSCALL, syscall_dispatch);
+
+	// TODO: what about other trap numbers
+
     KERN_INFO_CPU("Done.\n", cpu_idx);
     KERN_INFO_CPU("Enabling interrupts...\n", cpu_idx);
 
