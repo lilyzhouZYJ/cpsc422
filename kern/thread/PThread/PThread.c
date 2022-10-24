@@ -7,8 +7,25 @@
 
 #include "import.h"
 
+// Spinlock
+static spinlock_t thread_lk;
+
+void thread_spinlock_init(void) {
+    spinlock_init(&thread_lk);
+}
+
+void thread_lock(void) {
+    spinlock_acquire(&thread_lk);
+}
+
+void thread_unlock(void) {
+    spinlock_release(&thread_lk);
+}
+
+
 void thread_init(unsigned int mbi_addr)
 {
+	thread_spinlock_init();
     tqueue_init(mbi_addr);
     set_curid(0);
     tcb_set_state(0, TSTATE_RUN);
@@ -21,13 +38,16 @@ void thread_init(unsigned int mbi_addr)
  */
 unsigned int thread_spawn(void *entry, unsigned int id, unsigned int quota)
 {
+	thread_lock();
     unsigned int pid = kctx_new(entry, id, quota);
+	thread_unlock();
     if (pid != NUM_IDS) {
         tcb_set_cpu(pid, get_pcpu_idx());
         tcb_set_state(pid, TSTATE_READY);
         tqueue_enqueue(NUM_IDS + get_pcpu_idx(), pid);
     }
 
+	// thread_unlock();
     return pid;
 }
 
@@ -42,6 +62,7 @@ unsigned int thread_spawn(void *entry, unsigned int id, unsigned int quota)
  */
 void thread_yield(void)
 {
+	thread_lock();
     unsigned int new_cur_pid;
     unsigned int old_cur_pid = get_curid();
 
@@ -51,6 +72,8 @@ void thread_yield(void)
     new_cur_pid = tqueue_dequeue(NUM_IDS + get_pcpu_idx());
     tcb_set_state(new_cur_pid, TSTATE_RUN);
     set_curid(new_cur_pid);
+
+	thread_unlock(); // release lock before context switch
 
     if (old_cur_pid != new_cur_pid) {
         kctx_switch(old_cur_pid, new_cur_pid);
