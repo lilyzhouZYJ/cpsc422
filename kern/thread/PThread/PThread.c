@@ -40,14 +40,13 @@ unsigned int thread_spawn(void *entry, unsigned int id, unsigned int quota)
 {
 	thread_lock();
     unsigned int pid = kctx_new(entry, id, quota);
-	thread_unlock();
     if (pid != NUM_IDS) {
         tcb_set_cpu(pid, get_pcpu_idx());
         tcb_set_state(pid, TSTATE_READY);
         tqueue_enqueue(NUM_IDS + get_pcpu_idx(), pid);
     }
 
-	// thread_unlock();
+	thread_unlock();
     return pid;
 }
 
