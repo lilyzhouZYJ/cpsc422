@@ -99,15 +99,16 @@ void thread_yield(void)
 // Records (for each CPU) the number of miliseconds that has elapsed since the last thread switch. 
 // Once that reaches SCHED_SLICE miliseconds, you should yield the current thread to other ready 
 // thread by calling thread_yield, and reset the counter.
-unsigned int counter;
+unsigned int counters[NUM_CPUS];
 void sched_update(){
     // There are LAPIC_TIMER_INTR_FREQ = 1000 interrupts per second;
     // which means 1 interrupt per millisecond
     counter_lock();
-    counter++;
-    if(counter == SCHED_SLICE){
+    unsigned int cpu_idx = get_pcpu_idx();
+    counters[cpu_idx]++;
+    if(counters[cpu_idx] == SCHED_SLICE){
         // Reaches SCHED_SLICE milliseconds
-        counter = 0;
+        counters[cpu_idx] = 0;
         counter_unlock();
         thread_yield();
     }

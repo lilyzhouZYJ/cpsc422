@@ -85,6 +85,22 @@ void sys_spawn(tf_t *tf)
     elf_id = syscall_get_arg2(tf);
     quota = syscall_get_arg3(tf);
 
+    // Argument checking:
+    unsigned int curid = get_curid();
+    if(container_can_consume(curid, quota) == 0){
+        // Error: E_EXCEEDS_QUOTA
+        syscall_set_errno(tf, E_EXCEEDS_QUOTA);
+        syscall_set_retval1(tf, NUM_IDS);
+        return;
+    }
+    unsigned int curr_children_count = container_get_nchildren(curid);
+    if(curr_children_count == MAX_CHILDREN){
+        // Error: E_MAX_NUM_CHILDEN_REACHED
+        syscall_set_errno(tf, E_MAX_NUM_CHILDEN_REACHED);
+        syscall_set_retval1(tf, NUM_IDS);
+        return;
+    }
+
     switch (elf_id) {
     case 1:
         elf_addr = _binary___obj_user_pingpong_ping_start;
@@ -103,8 +119,8 @@ void sys_spawn(tf_t *tf)
 
     new_pid = proc_create(elf_addr, quota);
 
-    if (new_pid == NUM_IDS) {
-        syscall_set_errno(tf, E_INVAL_PID);
+    if (new_pid >= NUM_IDS) {
+        syscall_set_errno(tf, E_INVAL_CHILD_ID);
         syscall_set_retval1(tf, NUM_IDS);
     } else {
         syscall_set_errno(tf, E_SUCC);
@@ -128,7 +144,9 @@ void sys_produce(tf_t *tf)
 {
     unsigned int i;
     for (i = 0; i < 5; i++) {
+        intr_local_disable();
         KERN_DEBUG("CPU %d: Process %d: Produced %d\n", get_pcpu_idx(), get_curid(), i);
+        intr_local_enable();
     }
     syscall_set_errno(tf, E_SUCC);
 }
@@ -137,7 +155,9 @@ void sys_consume(tf_t *tf)
 {
     unsigned int i;
     for (i = 0; i < 5; i++) {
+        intr_local_disable();
         KERN_DEBUG("CPU %d: Process %d: Consumed %d\n", get_pcpu_idx(), get_curid(), i);
+        intr_local_enable();
     }
     syscall_set_errno(tf, E_SUCC);
 }
