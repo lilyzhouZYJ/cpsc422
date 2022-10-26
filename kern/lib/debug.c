@@ -8,6 +8,7 @@
 
 // Spinlock
 static spinlock_t debug_lk;
+extern void printf_spinlock_init(void);
 
 void debug_spinlock_init(void) {
     spinlock_init(&debug_lk);
@@ -26,6 +27,7 @@ void debug_unlock(void) {
 void debug_init(void)
 {
 	debug_spinlock_init();
+    printf_spinlock_init();
 }
 
 extern int vdprintf(const char *fmt, va_list ap);

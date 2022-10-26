@@ -95,6 +95,7 @@ static int spurious_intr_handler(void)
 static int timer_intr_handler(void)
 {
     intr_eoi();
+    sched_update(); // check timer and switch to thread
     return 0;
 }
 

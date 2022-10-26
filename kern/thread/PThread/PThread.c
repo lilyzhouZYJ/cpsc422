@@ -23,6 +23,23 @@ void thread_unlock(void) {
 }
 
 
+// Timer counter spinlock
+static spinlock_t counter_lk;
+
+void counter_spinlock_init(void) {
+    spinlock_init(&counter_lk);
+}
+
+void counter_lock(void) {
+    spinlock_acquire(&counter_lk);
+}
+
+void counter_unlock(void) {
+    spinlock_release(&counter_lk);
+}
+
+
+
 void thread_init(unsigned int mbi_addr)
 {
 	thread_spinlock_init();
@@ -77,4 +94,22 @@ void thread_yield(void)
     if (old_cur_pid != new_cur_pid) {
         kctx_switch(old_cur_pid, new_cur_pid);
     }
+}
+
+// Records (for each CPU) the number of miliseconds that has elapsed since the last thread switch. 
+// Once that reaches SCHED_SLICE miliseconds, you should yield the current thread to other ready 
+// thread by calling thread_yield, and reset the counter.
+unsigned int counter;
+void sched_update(){
+    // There are LAPIC_TIMER_INTR_FREQ = 1000 interrupts per second;
+    // which means 1 interrupt per millisecond
+    counter_lock();
+    counter++;
+    if(counter == SCHED_SLICE){
+        // Reaches SCHED_SLICE milliseconds
+        counter = 0;
+        counter_unlock();
+        thread_yield();
+    }
+    counter_unlock();
 }

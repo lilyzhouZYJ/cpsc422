@@ -5,6 +5,21 @@
 
 #include <lib/debug.h>
 #include <lib/stdarg.h>
+#include <lib/spinlock.h>
+
+static spinlock_t printf_lk;
+
+void printf_spinlock_init(void){
+    spinlock_init(&printf_lk);
+}
+
+void printf_lock(void) {
+    spinlock_acquire(&printf_lk);
+}
+
+void printf_unlock(void) {
+    spinlock_release(&printf_lk);
+}
 
 struct dprintbuf {
     int idx;  /* current buffer index */
@@ -33,6 +48,8 @@ static void putch(int ch, struct dprintbuf *b)
 
 int vdprintf(const char *fmt, va_list ap)
 {
+    printf_lock();
+
     struct dprintbuf b;
 
     b.idx = 0;
@@ -42,6 +59,7 @@ int vdprintf(const char *fmt, va_list ap)
     b.buf[b.idx] = 0;
     cputs(b.buf);
 
+    printf_unlock();
     return b.cnt;
 }
 
