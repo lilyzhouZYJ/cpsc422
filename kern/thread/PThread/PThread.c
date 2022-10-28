@@ -43,6 +43,7 @@ void counter_unlock(void) {
 void thread_init(unsigned int mbi_addr)
 {
 	thread_spinlock_init();
+    counter_spinlock_init();
     tqueue_init(mbi_addr);
     set_curid(0);
     tcb_set_state(0, TSTATE_RUN);
