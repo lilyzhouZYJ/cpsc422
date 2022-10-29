@@ -2,7 +2,7 @@
 
 OBJDIRS += $(KERN_OBJDIR)/trap/BBQueue
 
-KERN_SRCFILES += $(KERN_DIR)/trap/CondVariable/BBQueue.c
+KERN_SRCFILES += $(KERN_DIR)/trap/BBQueue/BBQueue.c
 
 $(KERN_OBJDIR)/trap/BBQueue/%.o: $(KERN_DIR)/trap/BBQueue/%.c
 	@echo + $(COMP_NAME)[KERN/trap/BBQueue] $<

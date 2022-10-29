@@ -1,7 +1,16 @@
 #include <lib/spinlock.h>
 #include "import.h"
 
-const int QUEUE_SIZE = 2;
+struct TQueue {
+    unsigned int head;
+    unsigned int tail;
+};
+
+struct CV {
+    struct TQueue queue;
+};
+
+#define QUEUE_SIZE 2
 
 int BBQueue[QUEUE_SIZE];
 int head;
@@ -26,7 +35,7 @@ void BBQ_init()
 void BBQ_insert(int n)
 {
     // Acquire lock
-    spinlock_acquire(queue_lk);
+    spinlock_acquire(&queue_lk);
 
     // Check if queue is full
     while(head == (tail + 1) % QUEUE_SIZE){
@@ -39,7 +48,7 @@ void BBQ_insert(int n)
     tail = (tail + 1) % QUEUE_SIZE;
 
     // Signal to element_added_cv
-	cv_signal(&element_added_cv);
+	CV_signal(&element_added_cv);
 
     // Release lock
     spinlock_release(&queue_lk);
@@ -60,7 +69,7 @@ int BBQ_remove()
     head = (head + 1) % QUEUE_SIZE;
 
     // Signal to element_removed_cv
-	cv_signal(&element_removed_cv);
+	CV_signal(&element_removed_cv);
 	
     // Release lock
     spinlock_release(&queue_lk);
