@@ -104,12 +104,14 @@ gcc_noinline void debug_panic(const char *file, int line, const char *fmt, ...)
 
 void debug_warn(const char *file, int line, const char *fmt, ...)
 {
+    debug_lock();
     dprintf("[W] %s:%d: ", file, line);
 
     va_list ap;
     va_start(ap, fmt);
     vdprintf(fmt, ap);
     va_end(ap);
+    debug_unlock();
 }
 
 #endif  /* DEBUG_MSG */
