@@ -8,3 +8,4 @@ include $(KERN_DIR)/thread/PTQueueIntro/Makefile.inc
 include $(KERN_DIR)/thread/PTQueueInit/Makefile.inc
 include $(KERN_DIR)/thread/PCurID/Makefile.inc
 include $(KERN_DIR)/thread/PThread/Makefile.inc
+include $(KERN_DIR)/thread/CVThreadQueue/Makefile.inc

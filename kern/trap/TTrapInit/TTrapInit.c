@@ -2,6 +2,7 @@
 #include <lib/debug.h>
 #include <lib/string.h>
 #include <dev/intr.h>
+#include <trap/BBQueue/export.h>
 #include "import.h"
 
 #define KERN_INFO_CPU(str, idx) \
@@ -33,6 +34,9 @@ void trap_init(unsigned int cpu_idx)
     if (cpu_idx == 0) {
         trap_init_array();
     }
+
+    // Initialize BBQueue for sys_consume and sys_produce
+    BBQ_init();
 
     KERN_INFO_CPU("Register trap handlers...\n", cpu_idx);
 

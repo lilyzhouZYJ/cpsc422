@@ -3,6 +3,8 @@
 
 #ifdef _KERN_
 
+struct TQueue;
+
 unsigned int tqueue_get_head(unsigned int chid);
 void tqueue_set_head(unsigned int chid, unsigned int head);
 unsigned int tqueue_get_tail(unsigned int chid);

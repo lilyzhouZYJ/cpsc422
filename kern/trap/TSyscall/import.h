@@ -3,6 +3,10 @@
 
 #ifdef _KERN_
 
+// BBQueue functions
+void BBQ_insert(int n);
+int BBQ_remove();
+
 unsigned int get_curid(void);
 unsigned int syscall_get_arg1(tf_t *tf);
 unsigned int syscall_get_arg2(tf_t *tf);

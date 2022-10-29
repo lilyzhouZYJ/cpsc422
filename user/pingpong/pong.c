@@ -12,5 +12,7 @@ int main(int argc, char **argv)
             consume();
     }
 
+    printf("pong ended.\n");
+
     return 0;
 }

@@ -3,11 +3,9 @@
 
 #ifdef _KERN_
 
-struct TQueue;
-
-void CV_init(struct CV cv);
-void CV_wait(struct CV cv, spinlock_t *lk);
-void CV_signal(struct CV cv);
+void BBQ_init();
+void BBQ_insert(int n);
+int BBQ_remove();
 
 #endif  /* _KERN_ */
 

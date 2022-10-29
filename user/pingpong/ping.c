@@ -16,6 +16,7 @@ int main(int argc, char **argv)
         if (i % 4 == 0)
             produce();
     }
+    printf("ping ended.\n");
 
     return 0;
 }

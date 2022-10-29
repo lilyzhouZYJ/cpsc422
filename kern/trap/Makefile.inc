@@ -1,5 +1,7 @@
 # -*-Makefile-*-
 
+include $(KERN_DIR)/trap/CondVariable/Makefile.inc
+include $(KERN_DIR)/trap/BBQueue/Makefile.inc
 include $(KERN_DIR)/trap/TSyscallArg/Makefile.inc
 include $(KERN_DIR)/trap/TSyscall/Makefile.inc
 include $(KERN_DIR)/trap/TDispatch/Makefile.inc
