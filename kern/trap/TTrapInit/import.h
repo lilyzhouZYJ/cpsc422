@@ -5,8 +5,6 @@
 
 #include <lib/trap.h>
 
-void BBQ_init();
-
 void syscall_dispatch(tf_t *tf);
 void exception_handler(tf_t *tf);
 void interrupt_handler(tf_t *tf);

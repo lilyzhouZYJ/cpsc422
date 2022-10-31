@@ -11,6 +11,7 @@
 #include <thread/PTCBIntro/export.h>
 #include <thread/PTQueueInit/export.h>
 #include <thread/PThread/export.h>
+#include <trap/BBQueue/export.h>
 
 #ifdef TEST
 extern bool test_PKCtxNew(void);
@@ -33,6 +34,10 @@ extern uint8_t _binary___obj_user_pingpong_pong_start[];
 static void kern_main(void)
 {
     KERN_INFO("[BSP KERN] In kernel main.\n\n");
+
+    // Initialize BBQueue for sys_consume and sys_produce
+    KERN_INFO("[BSP KERN] Initializing BBQueue.\n\n");
+    BBQ_init();
 
     KERN_INFO("[BSP KERN] Number of CPUs in this system: %d. \n", pcpu_ncpu());
 
@@ -92,7 +97,7 @@ static void kern_main(void)
 
 static void kern_main_ap(void)
 {
-    unsigned int pid, pid2;
+    unsigned int pid, pid2, pid_idle;
     int cpu_idx = get_pcpu_idx();
 
     set_pcpu_boot_info(cpu_idx, TRUE);
@@ -109,14 +114,16 @@ static void kern_main_ap(void)
         KERN_INFO("CPU%d: process ping1 %d is created.\n", cpu_idx, pid);
         pid2 = proc_create(_binary___obj_user_pingpong_ping_start, 1000);
         KERN_INFO("CPU%d: process ping2 %d is created.\n", cpu_idx, pid2);
-        proc_create(_binary___obj_user_idle_idle_start, 1000);
+        pid_idle = proc_create(_binary___obj_user_idle_idle_start, 1000);
+        KERN_INFO("CPU%d: process IDLE %d is created.\n", cpu_idx, pid_idle);
     }
     else if (cpu_idx == 2) {
         pid = proc_create(_binary___obj_user_pingpong_pong_start, 1000);
         KERN_INFO("CPU%d: process pong1 %d is created.\n", cpu_idx, pid);
         pid2 = proc_create(_binary___obj_user_pingpong_pong_start, 1000);
         KERN_INFO("CPU%d: process pong2 %d is created.\n", cpu_idx, pid2);
-        proc_create(_binary___obj_user_idle_idle_start, 1000);
+        pid_idle = proc_create(_binary___obj_user_idle_idle_start, 1000);
+        KERN_INFO("CPU%d: process IDLE %d is created.\n", cpu_idx, pid_idle);
     }
     else
         return;

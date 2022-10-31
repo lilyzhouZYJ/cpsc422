@@ -12,6 +12,7 @@ void tcb_set_state(unsigned int pid, unsigned int state);
 void kctx_switch(unsigned int from_pid, unsigned int to_pid);
 unsigned int tqueue_dequeue(unsigned int chid);
 void tqueue_enqueue(unsigned int chid, unsigned int pid);
+unsigned int tcb_get_cpu(unsigned int pid);
 
 void cv_queue_init(struct TQueue * CV_Queue);
 unsigned int cv_queue_get_head(struct TQueue * CV_Queue);

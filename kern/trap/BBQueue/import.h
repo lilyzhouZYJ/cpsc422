@@ -10,6 +10,9 @@ void CV_init(struct CV *cv);
 void CV_wait(struct CV *cv, spinlock_t *lk);
 void CV_signal(struct CV *cv);
 
+unsigned int get_curid(void);
+int get_pcpu_idx(void);
+
 #endif  /* _KERN_ */
 
 #endif  /* !_KERN_THREAD_BBQUEUE_H_ */

@@ -35,9 +35,6 @@ void trap_init(unsigned int cpu_idx)
         trap_init_array();
     }
 
-    // Initialize BBQueue for sys_consume and sys_produce
-    BBQ_init();
-
     KERN_INFO_CPU("Register trap handlers...\n", cpu_idx);
 
     // TODO: for CPU # [cpu_idx], register appropriate trap handler for each trap number,

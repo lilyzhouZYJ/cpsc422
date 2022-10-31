@@ -144,9 +144,9 @@ void sys_produce(tf_t *tf)
     unsigned int i;
     for (i = 0; i < 5; i++) {
         BBQ_insert(i);
-        intr_local_disable();
-        KERN_DEBUG("CPU %d: Process %d: Produced %d\n", get_pcpu_idx(), get_curid(), i);
-        intr_local_enable();
+        // intr_local_disable();
+        // KERN_DEBUG("CPU %d: Process %d: Produced %d\n", get_pcpu_idx(), get_curid(), i);
+        // intr_local_enable();
     }
     syscall_set_errno(tf, E_SUCC);
 }
@@ -156,9 +156,9 @@ void sys_consume(tf_t *tf)
     unsigned int i;
     for (i = 0; i < 5; i++) {
         int res = BBQ_remove();
-        intr_local_disable();
-        KERN_DEBUG("CPU %d: Process %d: Consumed %d\n", get_pcpu_idx(), get_curid(), res);
-        intr_local_enable();
+        // intr_local_disable();
+        // KERN_DEBUG("CPU %d: Process %d: Consumed %d\n", get_pcpu_idx(), get_curid(), res);
+        // intr_local_enable();
     }
     syscall_set_errno(tf, E_SUCC);
 }
