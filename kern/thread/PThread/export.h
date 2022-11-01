@@ -3,6 +3,10 @@
 
 #ifdef _KERN_
 
+// #include <lib/spinlock.h>
+
+// spinlock_t thread_lk;
+
 void thread_init(unsigned int mbi_addr);
 unsigned int thread_spawn(void *entry, unsigned int id,
                           unsigned int quota);

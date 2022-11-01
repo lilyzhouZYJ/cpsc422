@@ -7,9 +7,13 @@ int main(int argc, char **argv)
     unsigned int i;
     printf("pong started.\n");
 
-    for (i = 0; i < 20; i++) {
-        if (i % 2 == 0)
-            consume();
+    // for (i = 0; i < 20; i++) {
+    //     if (i % 2 == 0)
+    //         consume();
+    // }
+
+    for (i = 0; i < 150; i++){
+        consume();
     }
 
     printf("pong ended.\n");

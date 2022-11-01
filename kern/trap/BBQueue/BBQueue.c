@@ -39,7 +39,7 @@ void BBQ_init()
 void BBQ_insert(int i)
 {
     // Acquire lock
-    intr_local_disable();
+    // intr_local_disable();
     spinlock_acquire(&queue_lk);
 
     // Check if queue is full
@@ -60,13 +60,13 @@ void BBQ_insert(int i)
 
     // Release lock
     spinlock_release(&queue_lk);
-    intr_local_enable();
+    // intr_local_enable();
 }
 
 int BBQ_remove()
 {
     // Acquire lock
-    intr_local_disable();
+    // intr_local_disable();
     spinlock_acquire(&queue_lk);
 
     // Check if queue is empty
@@ -86,7 +86,7 @@ int BBQ_remove()
 
     // Release lock
     spinlock_release(&queue_lk);
-    intr_local_enable();
+    // intr_local_enable();
 
 	return result;
 }

@@ -8,7 +8,7 @@
 #include "import.h"
 
 // Spinlock
-static spinlock_t thread_lk;
+spinlock_t thread_lk;
 
 void thread_spinlock_init(void) {
     spinlock_init(&thread_lk);
@@ -22,28 +22,13 @@ void thread_unlock(void) {
     spinlock_release(&thread_lk);
 }
 
-
-// Timer counter spinlock
-static spinlock_t counter_lk;
-
-void counter_spinlock_init(void) {
-    spinlock_init(&counter_lk);
-}
-
-void counter_lock(void) {
-    spinlock_acquire(&counter_lk);
-}
-
-void counter_unlock(void) {
-    spinlock_release(&counter_lk);
-}
+unsigned int counters[NUM_CPUS];
 
 
 
 void thread_init(unsigned int mbi_addr)
 {
 	thread_spinlock_init();
-    counter_spinlock_init();
     tqueue_init(mbi_addr);
     set_curid(0);
     tcb_set_state(0, TSTATE_RUN);
@@ -80,6 +65,8 @@ unsigned int thread_spawn(void *entry, unsigned int id, unsigned int quota)
 void thread_yield(void)
 {
 	thread_lock();
+    counters[get_pcpu_idx()] = 0;
+
     unsigned int new_cur_pid;
     unsigned int old_cur_pid = get_curid();
 
@@ -90,28 +77,29 @@ void thread_yield(void)
     tcb_set_state(new_cur_pid, TSTATE_RUN);
     set_curid(new_cur_pid);
 
-	thread_unlock(); // release lock before context switch
-
     if (old_cur_pid != new_cur_pid) {
+        thread_unlock();
         kctx_switch(old_cur_pid, new_cur_pid);
+    } else {
+        thread_unlock();
     }
 }
 
 // Records (for each CPU) the number of miliseconds that has elapsed since the last thread switch. 
 // Once that reaches SCHED_SLICE miliseconds, you should yield the current thread to other ready 
 // thread by calling thread_yield, and reset the counter.
-unsigned int counters[NUM_CPUS];
 void sched_update(){
     // There are LAPIC_TIMER_INTR_FREQ = 1000 interrupts per second;
     // which means 1 interrupt per millisecond
-    counter_lock();
+    thread_lock();
     unsigned int cpu_idx = get_pcpu_idx();
     counters[cpu_idx]++;
-    if(counters[cpu_idx] == SCHED_SLICE){
+    if(counters[cpu_idx] > SCHED_SLICE){
         // Reaches SCHED_SLICE milliseconds
         counters[cpu_idx] = 0;
-        counter_unlock();
+        thread_unlock();
         thread_yield();
+    } else {
+        thread_unlock();
     }
-    counter_unlock();
 }
