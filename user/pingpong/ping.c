@@ -17,8 +17,9 @@ int main(int argc, char **argv)
     //         produce();
     // }
 
-    for (i = 0; i < 200; i++){
+    for(i = 0; i < 200; i++){
         produce();
+        for(int j = 0; j < 2000; j++){ }
     }
 
     printf("ping ended.\n");

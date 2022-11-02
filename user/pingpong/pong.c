@@ -12,8 +12,9 @@ int main(int argc, char **argv)
     //         consume();
     // }
 
-    for (i = 0; i < 150; i++){
+    for(i = 0; i < 200; i++){
         consume();
+        for(int j = 0; j < 2000; j++){ }
     }
 
     printf("pong ended.\n");

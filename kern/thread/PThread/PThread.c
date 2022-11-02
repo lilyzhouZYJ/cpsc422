@@ -85,6 +85,38 @@ void thread_yield(void)
     }
 }
 
+// Suspend a thread due to a CV_wait() call
+void thread_suspend(void)
+{
+    // Acquire thread lock: this lock protects the ready queue
+    thread_lock();
+
+    // Set current thread to SLEEP
+    unsigned int curid = get_curid();
+    tcb_set_state(curid, TSTATE_SLEEP);
+
+    // Wake up a new ready thread of current CPU and set it to run
+    unsigned int new_pid = tqueue_dequeue(NUM_IDS + get_pcpu_idx());
+    tcb_set_state(new_pid, TSTATE_RUN);
+    set_curid(new_pid);
+
+    // Context switch
+    thread_unlock();
+    kctx_switch(curid, new_pid);
+}
+
+// Resume a thread due to a CV_signal() call
+void thread_resume(unsigned int pid)
+{
+    thread_lock();
+
+    // Set it to ready and push to ready queue
+    tcb_set_state(pid, TSTATE_READY);
+    tqueue_enqueue(NUM_IDS + tcb_get_cpu(pid), pid);
+
+    thread_unlock();
+}
+
 // Records (for each CPU) the number of miliseconds that has elapsed since the last thread switch. 
 // Once that reaches SCHED_SLICE miliseconds, you should yield the current thread to other ready 
 // thread by calling thread_yield, and reset the counter.
