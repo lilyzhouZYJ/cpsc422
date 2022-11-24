@@ -110,14 +110,31 @@ void thread_sleep(void *chan, spinlock_t *lk)
     // then switch. Once we hold sched_lk, we can be guaranteed that we won't
     // miss any wakeup (wakeup runs with sched_lk locked), so it's okay to
     // release lock.
+    spinlock_acquire(&sched_lk);
 
     // TODO: Go to sleep.
+    spinlock_release(lk); // release lock first
+
+    // Enqueue to sleeping queue, which is TQueuePool[0]
+    unsigned int curid = get_curid();
+    tcb_set_state(curid, TSTATE_SLEEP);
+    tcb_set_chan(curid, chan);
+    tqueue_enqueue(0, curid);
 
     // TODO: Context switch.
+    unsigned int new_pid = tqueue_dequeue(NUM_IDS);
+    tcb_set_state(new_pid, TSTATE_RUN);
+    set_curid(new_pid);
+
+    spinlock_release(&sched_lk);
+    kctx_switch(curid, new_pid);
+    spinlock_acquire(&sched_lk);
 
     // TODO: Tidy up.
 
     // TODO: Reacquire original lock.
+    spinlock_acquire(lk);
+    spinlock_release(&sched_lk);
 }
 
 /**
@@ -126,4 +143,30 @@ void thread_sleep(void *chan, spinlock_t *lk)
 void thread_wakeup(void *chan)
 {
     // TODO
+
+    // This is used to mark the end of the sleeping queue,
+    // in the case where we re-enqueue a thread that is
+    // not waiting on chan.
+    unsigned int queue_end_pid = NUM_IDS;
+
+    unsigned int pid;
+    while((pid = tqueue_dequeue(0)) < NUM_IDS && pid != queue_end_pid){
+        if(tcb_get_chan(pid) == chan){
+            // Wake this thread up by adding it to ready list
+            tcb_set_state(pid, TSTATE_READY);
+            tcb_set_chan(pid, 0);
+            tqueue_enqueue(NUM_IDS, pid);
+        } else {
+            // Not waking this thread up; re-enqueue to sleeping list
+            tqueue_enqueue(0, pid);
+            if(queue_end_pid == NUM_IDS){
+                queue_end_pid = pid;
+            }
+        }
+    }
+
+    if(pid != NUM_IDS && pid == queue_end_pid){
+        // re-enqueue
+        tqueue_enqueue(0, pid);
+    }
 }

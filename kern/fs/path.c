@@ -14,6 +14,7 @@
 #include <kern/lib/spinlock.h>
 #include <thread/PTCBIntro/export.h>
 #include <thread/PCurID/export.h>
+#include <lib/string.h>
 #include "inode.h"
 #include "dir.h"
 #include "log.h"
@@ -40,7 +41,52 @@
 static char *skipelem(char *path, char *name)
 {
     // TODO
-    return 0;
+    int start = -1, end = -1;
+    int i = 0;
+    int finished_first_elt = 0;
+    char c;
+    while((c = path[i]) != '\0'){
+        if(c == '/'){
+            // ignore slash
+            i++;
+
+            // check if this is a trailing slash
+            if(start != -1){
+                finished_first_elt = 1;
+            }
+        } else {
+            // check if this is the second path element
+            if(finished_first_elt == 1){
+                break;
+            }
+
+            // process non-slash
+            if(start == -1){
+                start = i;
+            }
+            end = i;
+            i++;
+        }
+    }
+
+    if(start < 0){
+        // No element to remove
+        name[0] = '\0';
+        return 0;
+    } else {
+        // Check length of first element
+        int len = (end - start) + 1;
+        if(len >= DIRSIZ){
+            len = DIRSIZ - 1;
+        }
+
+        // Copy first element into name
+        strncpy(name, path + start, len);
+        name[len] = '\0';
+    }
+
+    // Return remaining path
+    return path + i;
 }
 
 /**
@@ -51,6 +97,8 @@ static char *skipelem(char *path, char *name)
  */
 static struct inode *namex(char *path, bool nameiparent, char *name)
 {
+    KERN_DEBUG("orig path: %s\n", path);
+
     struct inode *ip;
 
     // If path is a full path, get the pointer to the root inode. Otherwise get
@@ -61,13 +109,43 @@ static struct inode *namex(char *path, bool nameiparent, char *name)
         ip = inode_dup((struct inode *) tcb_get_cwd(get_curid()));
     }
 
+    KERN_DEBUG("hi im here ish\n");
+
+
+    inode_lock(ip);
+    KERN_DEBUG("hi im here\n");
+
     while ((path = skipelem(path, name)) != 0) {
+        KERN_DEBUG("name %s, path: %s\n", name, path);
+
         // TODO
+        // (1) Each iteration begins by locking ip and checking that it is a directory. 
+        //     If not, the lookup fails.
+        //     If ip's type is not a directory, return 0.
+        if(ip->type != T_DIR){
+            // Not a directory
+            inode_unlockput(ip);
+            return 0;
+        }
+
+        // (3) Then, the loop has to look for the path element using next = dir_lookup(ip, name, 0) 
+        //     and prepare for the next iteration by setting ip = next. When the loop runs out of 
+        //     path elements, it returns ip.
+        struct inode * next = dir_lookup(ip, name, 0);
+        ip = next;
     }
+
+    KERN_DEBUG("hi im done with loop\n");
+
+    // If the call is for a parent inode (that is, when nameiparent is true) and this 
+    // is the last path element (first character in path is '\0'), the loop stops early,
+    // as per the definition of nameiparent. We need to copy the final path element into
+    // name, so namex need only return the unlocked ip.
     if (nameiparent) {
-        inode_put(ip);
+        inode_unlockput(ip);
         return 0;
     }
+    inode_unlockput(ip);
     return ip;
 }
 
