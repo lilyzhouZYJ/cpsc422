@@ -97,7 +97,8 @@ static char *skipelem(char *path, char *name)
  */
 static struct inode *namex(char *path, bool nameiparent, char *name)
 {
-    KERN_DEBUG("orig path: %s\n", path);
+    // KERN_DEBUG("START NAMEX\n");
+    // KERN_DEBUG("namex: path %s, nameiparent %d\n", path, nameiparent);
 
     struct inode *ip;
 
@@ -107,45 +108,57 @@ static struct inode *namex(char *path, bool nameiparent, char *name)
         ip = inode_get(ROOTDEV, ROOTINO);
     } else {
         ip = inode_dup((struct inode *) tcb_get_cwd(get_curid()));
+        // KERN_DEBUG("namex: ip is cwd with ip->nlink %d\n", ip->nlink);
     }
 
-    KERN_DEBUG("hi im here ish\n");
-
-
-    inode_lock(ip);
-    KERN_DEBUG("hi im here\n");
-
     while ((path = skipelem(path, name)) != 0) {
-        KERN_DEBUG("name %s, path: %s\n", name, path);
+        // KERN_DEBUG("namex: top of while loop with path %s, name %s\n", path, name);
 
         // TODO
+        // KERN_DEBUG("namex: ip->nlink %d\n", ip->nlink);
+        inode_lock(ip);
+
         // (1) Each iteration begins by locking ip and checking that it is a directory. 
         //     If not, the lookup fails.
         //     If ip's type is not a directory, return 0.
         if(ip->type != T_DIR){
             // Not a directory
+            // KERN_DEBUG("namex: NOT A DIRECTORY!\n");
             inode_unlockput(ip);
             return 0;
+        }
+
+        // (2) If the call is for a parent inode (that is, when nameiparent is true) and this 
+        //     is the last path element (first character in path is '\0'), the loop stops early,
+        //     as per the definition of nameiparent. We need to copy the final path element into
+        //     name, so namex need only return the unlocked ip.
+        if (nameiparent && *path == '\0') {
+            // KERN_DEBUG("namex: exiting while loop for nameiparent and this is last path element\n");
+            inode_unlock(ip);
+            return ip;
         }
 
         // (3) Then, the loop has to look for the path element using next = dir_lookup(ip, name, 0) 
         //     and prepare for the next iteration by setting ip = next. When the loop runs out of 
         //     path elements, it returns ip.
         struct inode * next = dir_lookup(ip, name, 0);
+        if(next == 0){
+            // KERN_DEBUG("namex: name %s is not found via dir_lookup\n", name);
+            inode_unlockput(ip);
+            return 0;
+        }
+        inode_unlockput(ip);
         ip = next;
+
+        // KERN_DEBUG("namex: bottom of while loop, ip is %s with ip->nlink %d\n", name, ip->nlink);
     }
 
-    KERN_DEBUG("hi im done with loop\n");
-
-    // If the call is for a parent inode (that is, when nameiparent is true) and this 
-    // is the last path element (first character in path is '\0'), the loop stops early,
-    // as per the definition of nameiparent. We need to copy the final path element into
-    // name, so namex need only return the unlocked ip.
-    if (nameiparent) {
-        inode_unlockput(ip);
+    if(nameiparent){
+        inode_put(ip);
         return 0;
     }
-    inode_unlockput(ip);
+    
+    // KERN_DEBUG("END NAMEX\n");
     return ip;
 }
 

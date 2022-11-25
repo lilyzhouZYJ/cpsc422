@@ -40,9 +40,10 @@ static int fdalloc(struct file *f)
 
     // Scan the list for available file descriptor
     for(int i = 0; i < NOFILE; i++){
-        struct file * f = openfiles[i];
-        if(f == NULL || f->type == FD_NONE){
+        struct file * curr_f = openfiles[i];
+        if(curr_f == NULL || curr_f->type == FD_NONE){
             // Found available file descriptor
+            openfiles[i] = f;
             return i;
         }
     }
@@ -62,6 +63,8 @@ static int fdalloc(struct file *f)
  */
 void sys_read(tf_t *tf)
 {
+    // KERN_DEBUG("IN SYS_READ\n");
+
     // TODO
     // Read input from syscall
     int fd = syscall_get_arg2(tf); // ebx
@@ -72,6 +75,7 @@ void sys_read(tf_t *tf)
     if(n > BUFFER_SIZE){
         // Exceeds max buffer length
         syscall_set_errno(tf, E_INVAL_ID);
+        syscall_set_retval1(tf, -1);
         return;
     }
 
@@ -79,6 +83,7 @@ void sys_read(tf_t *tf)
     if(fd >= NOFILE){
         // Invalid fd
         syscall_set_errno(tf, E_BADF);
+        syscall_set_retval1(tf, -1);
         return;
     }
 
@@ -86,28 +91,38 @@ void sys_read(tf_t *tf)
     if (!(VM_USERLO <= user_buffer && user_buffer + n <= VM_USERHI)) {
         // Outside user address space
         syscall_set_errno(tf, E_INVAL_ADDR);
+        syscall_set_retval1(tf, -1);
         return;
     }
 
-    // Read file fd into global buffer
-    unsigned int curid = get_curid();
-    struct file * f = tcb_get_openfiles(curid)[fd];
+    // Read file fd into global kernel buffer
+    struct file * f = tcb_get_openfiles(get_curid())[fd];
     spinlock_acquire(&kernel_buffer_lock);
-    if(file_read(f, kernel_buffer, n) == -1){
+    int n_read = file_read(f, kernel_buffer, n);
+    // KERN_DEBUG("sys_read: file_read %d bytes\n", n_read);
+    if(n_read < 0){
         // Error in file_read
+        // KERN_DEBUG("sys_read: n_read (%d) < 0\n", n_read);
         syscall_set_errno(tf, E_BADF);
+        syscall_set_retval1(tf, -1);
         spinlock_release(&kernel_buffer_lock);
         return;
     }
 
-    // Copy using pt_copyout
-    size_t n_read = pt_copyout(kernel_buffer, get_curid(), user_buffer, n);
-    if(n_read < 0){
+    // Copy to user_buffer using pt_copyout
+    size_t n_copied = pt_copyout(kernel_buffer, get_curid(), user_buffer, n_read);
+    // KERN_DEBUG("sys_read: kernel_buffer[0] is %d\n", kernel_buffer[0]);
+    if(n_copied != n_read){
         // Error in copying
         syscall_set_errno(tf, E_BADF);
+        syscall_set_retval1(tf, -1);
         spinlock_release(&kernel_buffer_lock);
         return;
     }
+
+    // Success
+    syscall_set_errno(tf, E_SUCC);
+    syscall_set_retval1(tf, n_read);
     spinlock_release(&kernel_buffer_lock);
 }
 
@@ -122,6 +137,8 @@ void sys_read(tf_t *tf)
  */
 void sys_write(tf_t *tf)
 {
+    // KERN_DEBUG("IN SYS_WRITE\n");
+
     // TODO
     // Read input from syscall
     int fd = syscall_get_arg2(tf); // ebx
@@ -132,6 +149,7 @@ void sys_write(tf_t *tf)
     if(n > BUFFER_SIZE){
         // Exceeds max buffer length
         syscall_set_errno(tf, E_INVAL_ID);
+        syscall_set_retval1(tf, -1);
         return;
     }
 
@@ -139,6 +157,7 @@ void sys_write(tf_t *tf)
     if(fd >= NOFILE){
         // Invalid fd
         syscall_set_errno(tf, E_BADF);
+        syscall_set_retval1(tf, -1);
         return;
     }
 
@@ -146,30 +165,32 @@ void sys_write(tf_t *tf)
     if (!(VM_USERLO <= user_buffer && user_buffer + n <= VM_USERHI)) {
         // Outside user address space
         syscall_set_errno(tf, E_INVAL_ADDR);
+        syscall_set_retval1(tf, -1);
         return;
     }
 
     // Copy from user_buffer to kernel_buffer using pt_copyin
     spinlock_acquire(&kernel_buffer_lock);
-    int n_write = pt_copyin(get_curid(), user_buffer, kernel_buffer, n);
-    if(n_write < 0){
-        // Error in copying
+    size_t n_copied = pt_copyin(get_curid(), user_buffer, kernel_buffer, n);
+    // KERN_DEBUG("sys_write: kernel_buffer[0] is %d\n", kernel_buffer[0]);
+
+    // Write to file from kernel_buffer
+    struct file * f = tcb_get_openfiles(get_curid())[fd];
+    int n_write = file_write(f, kernel_buffer, n_copied);
+    if(n_write < 0 || n_write != n_copied){
+        // Error in file_write
         syscall_set_errno(tf, E_BADF);
+        syscall_set_retval1(tf, -1);
         spinlock_release(&kernel_buffer_lock);
         return;
     }
 
-    // Write to file from kernel_buffer
-    unsigned int curid = get_curid();
-    struct file * f = tcb_get_openfiles(curid)[fd];
-    n_write = file_write(f, kernel_buffer, n);
-    if(n_write == -1){
-        // Error in file_write
-        syscall_set_errno(tf, E_BADF);
-        spinlock_release(&kernel_buffer_lock);
-        return;
-    }
+    // Success
+    syscall_set_errno(tf, E_SUCC);
+    syscall_set_retval1(tf, n_write);
     spinlock_release(&kernel_buffer_lock);
+
+    // KERN_DEBUG("EXIT FILE_WRITE\n");
 }
 
 /**
@@ -186,13 +207,17 @@ void sys_close(tf_t *tf)
     if(fd >= NOFILE){
         // Invalid fd
         syscall_set_errno(tf, E_BADF);
+        syscall_set_retval1(tf, -1);
         return;
     }
 
     // Find file and close it
-    unsigned int curid = get_curid();
-    struct file * f = tcb_get_openfiles(curid)[fd];
+    struct file * f = tcb_get_openfiles(get_curid())[fd];
     file_close(f);
+
+    // Success
+    syscall_set_errno(tf, E_SUCC);
+    syscall_set_retval1(tf, 0);
 }
 
 /**
@@ -210,6 +235,7 @@ void sys_fstat(tf_t *tf)
     if(fd >= NOFILE){
         // Invalid fd
         syscall_set_errno(tf, E_BADF);
+        syscall_set_retval1(tf, -1);
         return;
     }
 
@@ -217,28 +243,34 @@ void sys_fstat(tf_t *tf)
     if (!(VM_USERLO <= user_st && user_st + sizeof(user_st) <= VM_USERHI)) {
         // Outside user address space
         syscall_set_errno(tf, E_INVAL_ADDR);
+        syscall_set_retval1(tf, -1);
         return;
     }
 
     // Find file and copy its metadata to kernel_st
-    unsigned int curid = get_curid();
-    struct file * f = tcb_get_openfiles(curid)[fd];
+    struct file * f = tcb_get_openfiles(get_curid())[fd];
     spinlock_acquire(&kernel_buffer_lock);
     if(file_stat(f, &kernel_st) == -1){
         // Error in file_stat
         syscall_set_errno(tf, E_BADF);
+        syscall_set_retval1(tf, -1);
         spinlock_release(&kernel_buffer_lock);
         return;
     }
 
     // Copy kernel_st to user_st
-    int n_read = pt_copyout(&kernel_st, get_curid(), user_st, sizeof(kernel_st));
-    if(n_read < 0){
+    int n_copied = pt_copyout(&kernel_st, get_curid(), user_st, sizeof(kernel_st));
+    if(n_copied < 0 || n_copied != sizeof(kernel_st)){
         // Error in copying
         syscall_set_errno(tf, E_BADF);
+        syscall_set_retval1(tf, -1);
         spinlock_release(&kernel_buffer_lock);
         return;
     }
+
+    // Success
+    syscall_set_errno(tf, E_SUCC);
+    syscall_set_retval1(tf, 0);
     spinlock_release(&kernel_buffer_lock);
 }
 
@@ -252,8 +284,30 @@ void sys_link(tf_t * tf)
 
     unsigned int old_len = syscall_get_arg4(tf); // edx
     unsigned int new_len = syscall_get_arg5(tf); // esi
-    pt_copyin(get_curid(), syscall_get_arg2(tf), old, old_len + 1);
-    pt_copyin(get_curid(), syscall_get_arg3(tf), new, new_len + 1);
+
+    // Check size
+    if(old_len >= 128 || new_len >= 128){
+        // Exceeds max buffer length
+        syscall_set_errno(tf, E_INVAL_ID);
+        return;
+    }
+
+    // Check user pointer
+    uintptr_t user_old = syscall_get_arg2(tf);
+    uintptr_t user_new = syscall_get_arg3(tf);
+    if (!(VM_USERLO <= user_old && user_old + old_len <= VM_USERHI)) {
+        // Outside user address space
+        syscall_set_errno(tf, E_INVAL_ADDR);
+        return;
+    }
+    if (!(VM_USERLO <= user_new && user_new + new_len <= VM_USERHI)) {
+        // Outside user address space
+        syscall_set_errno(tf, E_INVAL_ADDR);
+        return;
+    }
+
+    pt_copyin(get_curid(), user_old, old, old_len);
+    pt_copyin(get_curid(), user_new, new, new_len);
     old[old_len] = '\0';
     new[new_len] = '\0';
 
@@ -320,14 +374,33 @@ static int isdirempty(struct inode *dp)
 
 void sys_unlink(tf_t *tf)
 {
+    // KERN_DEBUG("START SYS_UNLINK\n");
+
     struct inode *ip, *dp;
     struct dirent de;
     char name[DIRSIZ], path[128];
     uint32_t off;
 
     unsigned int path_len = syscall_get_arg3(tf);
-    pt_copyin(get_curid(), syscall_get_arg2(tf), path, path_len + 1);
+
+    // Check size
+    if(path_len >= 128){
+        // Exceeds max buffer length
+        syscall_set_errno(tf, E_INVAL_ID);
+        return;
+    }
+
+    uint32_t user_path = syscall_get_arg2(tf);
+    if (!(VM_USERLO <= user_path && user_path + path_len <= VM_USERHI)) {
+        // Outside user address space
+        syscall_set_errno(tf, E_INVAL_ADDR);
+        return;
+    }
+
+    pt_copyin(get_curid(), user_path, path, path_len);
     path[path_len] = '\0';
+
+    // KERN_DEBUG("sys_unlink: path is %s\n", path);
 
     if ((dp = nameiparent(path, name)) == 0) {
         syscall_set_errno(tf, E_DISK_OP);
@@ -342,9 +415,13 @@ void sys_unlink(tf_t *tf)
     if (dir_namecmp(name, ".") == 0 || dir_namecmp(name, "..") == 0)
         goto bad;
 
+    // KERN_DEBUG("sys_unlink: going to dir_lookup %s\n", name);
+
     if ((ip = dir_lookup(dp, name, &off)) == 0)
         goto bad;
     inode_lock(ip);
+
+    // KERN_DEBUG("sys_unlink: the inode for %s has ip->nlink %d, off %d\n", name, ip->nlink, off);
 
     if (ip->nlink < 1)
         KERN_PANIC("unlink: nlink < 1");
@@ -366,20 +443,25 @@ void sys_unlink(tf_t *tf)
     inode_update(ip);
     inode_unlockput(ip);
 
+    // KERN_DEBUG("sys_unlink: ip->nlink is now %d\n", ip->nlink);
     commit_trans();
 
     syscall_set_errno(tf, E_SUCC);
+    // KERN_DEBUG("END SYS_UNLINK\n");
     return;
 
 bad:
     inode_unlockput(dp);
     commit_trans();
     syscall_set_errno(tf, E_DISK_OP);
+    // KERN_DEBUG("END SYS_UNLINK in bad\n");
     return;
 }
 
 static struct inode *create(char *path, short type, short major, short minor)
 {
+    // KERN_DEBUG("START CREATE\n");
+
     uint32_t off;
     struct inode *ip, *dp;
     char name[DIRSIZ];
@@ -388,7 +470,11 @@ static struct inode *create(char *path, short type, short major, short minor)
         return 0;
     inode_lock(dp);
 
+    // KERN_DEBUG("create: name %s, path %s\n", name, path);
+    // KERN_DEBUG("create: gonna look up name using dir_lookup\n");
+
     if ((ip = dir_lookup(dp, name, &off)) != 0) {
+        // KERN_DEBUG("create: oops, %s is found\n", name);
         inode_unlockput(dp);
         inode_lock(ip);
         if (type == T_FILE && ip->type == T_FILE)
@@ -397,8 +483,13 @@ static struct inode *create(char *path, short type, short major, short minor)
         return 0;
     }
 
+    // KERN_DEBUG("create: %s is not found\n", name);
+    // KERN_DEBUG("create: going to allocate inode\n");
+
     if ((ip = inode_alloc(dp->dev, type)) == 0)
         KERN_PANIC("create: ialloc");
+
+    // KERN_DEBUG("create: setting up inode attributes (include nlink=1)\n");
 
     inode_lock(ip);
     ip->major = major;
@@ -407,6 +498,7 @@ static struct inode *create(char *path, short type, short major, short minor)
     inode_update(ip);
 
     if (type == T_DIR) {  // Create . and .. entries.
+        // KERN_DEBUG("create: setting up . and .. entries\n");
         dp->nlink++;      // for ".."
         inode_update(dp);
         // No ip->nlink++ for ".": avoid cyclic ref count.
@@ -415,43 +507,76 @@ static struct inode *create(char *path, short type, short major, short minor)
             KERN_PANIC("create dots");
     }
 
+    // KERN_DEBUG("create: link new inode to path\n");
+
     if (dir_link(dp, name, ip->inum) < 0)
         KERN_PANIC("create: dir_link");
 
     inode_unlockput(dp);
+    
+    // KERN_DEBUG("END CREATE\n");
+
     return ip;
 }
 
 void sys_open(tf_t *tf)
 {
+    // KERN_DEBUG("START SYS_OPEN\n");
+
     char path[128];
     int fd, omode;
     struct file *f;
     struct inode *ip;
 
     unsigned int path_len = syscall_get_arg4(tf);
-    pt_copyin(get_curid(), syscall_get_arg2(tf), path, path_len + 1);
+
+    // Check size
+    if(path_len >= 128){
+        // Exceeds max buffer length
+        syscall_set_errno(tf, E_INVAL_ID);
+        return;
+    }
+
+    // Check user pointer
+    uint32_t user_path = syscall_get_arg2(tf);
+    if (!(VM_USERLO <= user_path && user_path + path_len <= VM_USERHI)) {
+        // Outside user address space
+        syscall_set_errno(tf, E_INVAL_ADDR);
+        return;
+    }
+
+    pt_copyin(get_curid(), user_path, path, path_len);
     path[path_len] = '\0';
 
     omode = syscall_get_arg3(tf);
 
+    // KERN_DEBUG("sys_open: path %s, path_len %d, omode %d\n", path, path_len, omode);
+
     if (omode & O_CREATE) {
+        // KERN_DEBUG("sys_open: START CREATING INODE\n");
         begin_trans();
         ip = create(path, T_FILE, 0, 0);
         commit_trans();
+        // KERN_DEBUG("sys_open: INODE CREATION COMMITTED\n");
         if (ip == 0) {
+            // KERN_DEBUG("sys_open: oopsies why is ip = 0\n");
             syscall_set_retval1(tf, -1);
             syscall_set_errno(tf, E_CREATE);
             return;
         }
+        // KERN_DEBUG("sys_open: INODE CREATION SUCCESS\n");
     } else {
+        // KERN_DEBUG("sys_open: NOT CREATE MODE\n");
+
         if ((ip = namei(path)) == 0) {
+            // KERN_DEBUG("sys_open: oops why is ip 0\n");
             syscall_set_retval1(tf, -1);
             syscall_set_errno(tf, E_NEXIST);
             return;
         }
         inode_lock(ip);
         if (ip->type == T_DIR && omode != O_RDONLY) {
+            // KERN_DEBUG("sys_open: ip->type is %d and omode is %d\n", ip->type, omode);
             inode_unlockput(ip);
             syscall_set_retval1(tf, -1);
             syscall_set_errno(tf, E_DISK_OP);
@@ -459,7 +584,10 @@ void sys_open(tf_t *tf)
         }
     }
 
+    // KERN_DEBUG("sys_open: TRYING TO ALLOCATE FILE\n");
+
     if ((f = file_alloc()) == 0 || (fd = fdalloc(f)) < 0) {
+        // KERN_DEBUG("sys_open: ALLOCATION FAILED\n");
         if (f)
             file_close(f);
         inode_unlockput(ip);
@@ -469,6 +597,8 @@ void sys_open(tf_t *tf)
     }
     inode_unlock(ip);
 
+    // KERN_DEBUG("sys_open: SETTING UP FILE ATTRIBUTES (including f->type to FD_INODE\n");
+
     f->type = FD_INODE;
     f->ip = ip;
     f->off = 0;
@@ -476,6 +606,8 @@ void sys_open(tf_t *tf)
     f->writable = (omode & O_WRONLY) || (omode & O_RDWR);
     syscall_set_retval1(tf, fd);
     syscall_set_errno(tf, E_SUCC);
+
+    // KERN_DEBUG("END SYS_OPEN\n");
 }
 
 void sys_mkdir(tf_t *tf)
@@ -484,7 +616,23 @@ void sys_mkdir(tf_t *tf)
     struct inode *ip;
 
     unsigned int path_len = syscall_get_arg3(tf);
-    pt_copyin(get_curid(), syscall_get_arg2(tf), path, path_len + 1);
+
+    // Check size
+    if(path_len >= 128){
+        // Exceeds max buffer length
+        syscall_set_errno(tf, E_INVAL_ID);
+        return;
+    }
+
+    // Check user pointer
+    uint32_t user_path = syscall_get_arg2(tf);
+    if (!(VM_USERLO <= user_path && user_path + path_len <= VM_USERHI)) {
+        // Outside user address space
+        syscall_set_errno(tf, E_INVAL_ADDR);
+        return;
+    }
+
+    pt_copyin(get_curid(), user_path, path, path_len);
     path[path_len] = '\0';
 
     begin_trans();
@@ -505,7 +653,23 @@ void sys_chdir(tf_t *tf)
     int pid = get_curid();
 
     unsigned int path_len = syscall_get_arg3(tf);
-    pt_copyin(get_curid(), syscall_get_arg2(tf), path, path_len + 1);
+
+    // Check size
+    if(path_len >= 128){
+        // Exceeds max buffer length
+        syscall_set_errno(tf, E_INVAL_ID);
+        return;
+    }
+
+    // Check user pointer
+    uint32_t user_path = syscall_get_arg2(tf);
+    if (!(VM_USERLO <= user_path && user_path + path_len <= VM_USERHI)) {
+        // Outside user address space
+        syscall_set_errno(tf, E_INVAL_ADDR);
+        return;
+    }
+
+    pt_copyin(get_curid(), user_path, path, path_len);
     path[path_len] = '\0';
 
     if ((ip = namei(path)) == 0) {

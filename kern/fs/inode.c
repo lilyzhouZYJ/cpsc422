@@ -150,6 +150,7 @@ void inode_lock(struct inode *ip)
         ip->type = dip->type;
         ip->major = dip->major;
         ip->minor = dip->minor;
+        // KERN_DEBUG("inode_lock: updating ip nlink to %d\n", dip->nlink);
         ip->nlink = dip->nlink;
         ip->size = dip->size;
         memmove(ip->addrs, dip->addrs, sizeof(ip->addrs));

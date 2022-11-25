@@ -117,6 +117,7 @@ int file_read(struct file *f, char *addr, int n)
  */
 int file_write(struct file *f, char *addr, int n)
 {
+    // KERN_DEBUG("file_write: file type is %d\n", f->type);
     int r;
 
     if (f->writable == 0)

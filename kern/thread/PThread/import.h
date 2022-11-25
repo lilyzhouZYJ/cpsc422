@@ -13,6 +13,7 @@ void *tcb_get_chan(unsigned int pid);
 void tqueue_init(unsigned int mbi_addr);
 void tqueue_enqueue(unsigned int chid, unsigned int pid);
 unsigned int tqueue_dequeue(unsigned int chid);
+unsigned int tqueue_get_head(unsigned int chid);
 
 unsigned int get_curid(void);
 void set_curid(unsigned int curid);

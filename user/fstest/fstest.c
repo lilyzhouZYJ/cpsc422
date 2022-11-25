@@ -73,6 +73,8 @@ void bigfile1(void)
         exit();
     }
 
+    // printf("MAXFILE is %d\n", MAXFILE);
+
     for (i = 0; i < MAXFILE; i++) {
         ((int *) buf)[0] = i;
         if (write(fd, buf, 512) != 512) {
@@ -92,6 +94,7 @@ void bigfile1(void)
     n = 0;
     for (;;) {
         i = read(fd, buf, 512);
+        // printf("bigfile1 is reading: n = %d, i = %d\n", n, i);
         if (i == 0) {
             if (n == MAXFILE - 1) {
                 printf("read only %d blocks from big", n);
@@ -129,6 +132,7 @@ void createtest(void)
         fd = open(name, O_CREATE | O_RDWR);
         close(fd);
     }
+    printf("start unlinking now\n");
     name[0] = 'a';
     name[2] = '\0';
     for (i = 0; i < 52; i++) {
@@ -462,25 +466,37 @@ void linktest(void)
 
     printf("=====linktest=====\n");
 
+    printf("====going to unlink lf1 and lf2====\n");
+
     unlink("lf1");
     unlink("lf2");
+
+    printf("====going to open lf1====\n");
 
     fd = open("lf1", O_CREATE | O_RDWR);
     if (fd < 0) {
         printf("create lf1 failed\n");
         exit();
     }
+    printf("====going to write to lf1====\n");
     if (write(fd, "hello", 5) != 5) {
         printf("write lf1 failed\n");
         exit();
     }
+    printf("====going to close lf1====\n");
     close(fd);
+
+    printf("====linking lf1 and lf2====\n");
 
     if (link("lf1", "lf2") < 0) {
         printf("link lf1 lf2 failed\n");
         exit();
     }
+
+    printf("====unlinking lf1====\n");
     unlink("lf1");
+
+    printf("====trying to open lf1====\n");
 
     if (open("lf1", 0) >= 0) {
         printf("unlinked lf1 but it is still there!\n");

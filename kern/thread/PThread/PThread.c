@@ -143,30 +143,13 @@ void thread_sleep(void *chan, spinlock_t *lk)
 void thread_wakeup(void *chan)
 {
     // TODO
-
-    // This is used to mark the end of the sleeping queue,
-    // in the case where we re-enqueue a thread that is
-    // not waiting on chan.
-    unsigned int queue_end_pid = NUM_IDS;
-
-    unsigned int pid;
-    while((pid = tqueue_dequeue(0)) < NUM_IDS && pid != queue_end_pid){
+    unsigned int pid = tqueue_get_head(0);
+    while(pid != NUM_IDS){
         if(tcb_get_chan(pid) == chan){
-            // Wake this thread up by adding it to ready list
             tcb_set_state(pid, TSTATE_READY);
             tcb_set_chan(pid, 0);
             tqueue_enqueue(NUM_IDS, pid);
-        } else {
-            // Not waking this thread up; re-enqueue to sleeping list
-            tqueue_enqueue(0, pid);
-            if(queue_end_pid == NUM_IDS){
-                queue_end_pid = pid;
-            }
         }
-    }
-
-    if(pid != NUM_IDS && pid == queue_end_pid){
-        // re-enqueue
-        tqueue_enqueue(0, pid);
+        pid = tcb_get_next(pid);
     }
 }
