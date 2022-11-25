@@ -1,6 +1,17 @@
 #ifndef _USER_FILE_H_
 #define _USER_FILE_H_
 
+#define DIRSIZ 14
+
+struct dirent {
+    uint16_t inum;
+    char name[DIRSIZ];
+};
+
+#define T_DIR  1  // Directory
+#define T_FILE 2  // File
+#define T_DEV  3  // Device
+
 struct file_stat {
     int16_t type;    // Type of file
     uint32_t dev;    // File system's disk device
@@ -48,11 +59,12 @@ struct file {
 #define read(fd, str, n)  sys_read((fd), (str), (n))
 #define write(fd, str, n) sys_write((fd), (str), (n))
 #define close(fd)         sys_close((fd))
-#define fstat(fd)         sys_fstat((fd))
+#define fstat(fd, st)     sys_fstat((fd), (st))
 #define link(old, new)    sys_link((old), (new))
 #define unlink(path)      sys_unlink((path))
 #define open(path, omode) sys_open((path), (omode))
 #define mkdir(path)       sys_mkdir((path))
 #define chdir(path)       sys_chdir((path))
+#define ls(path)          sys_ls((path))
 
 #endif  /* !_USER_FILE_H_ */

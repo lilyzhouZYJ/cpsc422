@@ -4,6 +4,7 @@
 #ifdef _KERN_
 
 #define CONSOLE_BUFFER_SIZE 512
+#define BUFLEN 1024
 
 void cons_init(void);
 void cons_enable_kbd(void);

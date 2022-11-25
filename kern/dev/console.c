@@ -8,7 +8,6 @@
 #include "serial.h"
 #include "keyboard.h"
 
-#define BUFLEN 1024
 static char linebuf[BUFLEN];
 
 static spinlock_t cons_lk;
@@ -86,6 +85,8 @@ void putchar(char c)
 
 char *readline(const char *prompt)
 {
+    // KERN_DEBUG("in console.c readline\n");
+
     int i;
     char c;
 
@@ -107,6 +108,7 @@ char *readline(const char *prompt)
         } else if (c == '\n' || c == '\r') {
             putchar('\n');
             linebuf[i] = 0;
+            // KERN_DEBUG("in console.c readline with linebuf %s\n", linebuf);
             return linebuf;
         }
     }

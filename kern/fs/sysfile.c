@@ -23,6 +23,41 @@ char kernel_buffer[BUFFER_SIZE];
 struct file_stat kernel_st;
 spinlock_t kernel_buffer_lock;
 
+void sys_ls(tf_t *tf)
+{
+    // // Read input from syscall
+    // uintptr_t user_path = syscall_get_arg2(tf); // ebx
+    // int user_path_len = syscall_get_arg3(tf); // ecx
+
+    // // Check length
+    // if(user_path_len >= 128){
+    //     // Exceeds max buffer length
+    //     syscall_set_errno(tf, E_INVAL_ID);
+    //     syscall_set_retval1(tf, -1);
+    //     return;
+    // }
+
+    // // Check user pointer
+    // if (!(VM_USERLO <= user_path && user_path + user_path_len <= VM_USERHI)) {
+    //     // Outside user address space
+    //     syscall_set_errno(tf, E_INVAL_ADDR);
+    //     syscall_set_retval1(tf, -1);
+    //     return;
+    // }
+
+    // // Copy path from user to kernel
+    // char path[user_path_len + 1];
+    // size_t n_copied = pt_copyin(get_curid(), user_path, path, user_path_len);
+    // if(n_copied != user_path_len){
+    //     syscall_set_errno(tf, E_BADF);
+    //     syscall_set_retval1(tf, -1);
+    //     return;
+    // }
+    // path[user_path_len] = '\0';
+
+
+}
+
 /**
  * This function is not a system call handler, but an auxiliary function
  * used by sys_open.

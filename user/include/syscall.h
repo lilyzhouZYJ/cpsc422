@@ -11,6 +11,33 @@
 #include <x86.h>
 #include <file.h>
 
+static gcc_inline void sys_ls(const char *path)
+{
+    int path_len = strlen(path);
+
+    asm volatile ("int %0"
+                  :: "i" (T_SYSCALL),
+                     "a" (SYS_ls),
+                     "b" (path),
+                     "c" (path_len)
+                  : "cc", "memory");
+}
+
+static gcc_inline void sys_readline(const char *prompt, char * buffer)
+{
+    // DEBUG("in syscall.h sys_readline with prompt %s\n", prompt);
+
+    int prompt_len = strlen(prompt);
+
+    asm volatile ("int %0"
+                  :: "i" (T_SYSCALL),
+                     "a" (SYS_readline),
+                     "b" (prompt),
+                     "c" (prompt_len),
+                     "d" (buffer)
+                  : "cc", "memory");
+}
+
 static gcc_inline void sys_puts(const char *s, size_t len)
 {
     asm volatile ("int %0"
