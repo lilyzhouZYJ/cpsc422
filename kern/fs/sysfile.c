@@ -53,15 +53,6 @@ void sys_cd(tf_t *tf)
 
     KERN_DEBUG("sys_cd: path is %s\n", kernel_path);
 
-    // // (1) Path is '.', do nothing
-    // if(strcmp(kernel_path, ".") == 0){
-    //     syscall_set_errno(tf, E_SUCC);
-    //     syscall_set_retval1(tf, 0);
-
-    //     KERN_DEBUG("END SYS_CD with no path change\n");
-    //     return;
-    // }
-
     // Get inode for curr directory
     struct inode * curr_inode = tcb_get_cwd(get_curid());
 
@@ -72,6 +63,7 @@ void sys_cd(tf_t *tf)
             struct inode * parent_inode;
             uint32_t poff;
             while((parent_inode = dir_lookup(curr_inode, "..", &poff)) != NULL){
+                // KERN_DEBUG("going to parent \n");
                 if(curr_inode->inum == parent_inode->inum){
                     // Stuck with the same directory
                     break;
@@ -85,12 +77,13 @@ void sys_cd(tf_t *tf)
         while((next_inode = namei(kernel_path)) != NULL){
             if(next_inode->inum == curr_inode->inum){
                 // Stuck with the same directory
+                // KERN_DEBUG("sys_cd: stuck in same directory, exit loop\n");
                 break;
             }
 
             // Make sure next_inode is directory
             if(next_inode->type != T_DIR){
-                KERN_DEBUG("sys_cd: curr_inode is not a directory but has type %d\n", curr_inode->type);
+                // KERN_DEBUG("sys_cd: curr_inode is not a directory but has type %d\n", curr_inode->type);
                 syscall_set_errno(tf, E_BADF);
                 syscall_set_retval1(tf, -1);
                 return;
@@ -101,7 +94,7 @@ void sys_cd(tf_t *tf)
     }
 
     // Set inode to current working directory
-    tcb_set_cwd(get_curid(), curr_inode);    
+    tcb_set_cwd(get_curid(), curr_inode);
 
     syscall_set_errno(tf, E_SUCC);
     syscall_set_retval1(tf, 0);
@@ -111,6 +104,8 @@ void sys_cd(tf_t *tf)
 
 int sys_pwd_internal(struct inode * curr_inode)
 {
+    // KERN_DEBUG("in sys_pwd_internal\n");
+
     // Error checking
     if(curr_inode == NULL){
         KERN_DEBUG("sys_pwd_internal: curr_inode is null\n");
@@ -119,8 +114,6 @@ int sys_pwd_internal(struct inode * curr_inode)
 
     // Base: reaching root directory
     if(curr_inode->inum == ROOTINO){
-        // Only need to print '/'
-        dprintf("/\n");
         return 0;
     }
 
@@ -142,21 +135,29 @@ int sys_pwd_internal(struct inode * curr_inode)
     // (3) Save the name of curr_inode
     struct dirent de;
     for(uint32_t off = 0; off < parent_inode->size; off += sizeof(de)){
+        // KERN_DEBUG("sys_pwd_internal: in loop\n");
         inode_lock(parent_inode);
 
+        // KERN_DEBUG("sys_pwd_internal: in loop, will call inode_read\n");
         int read_size = inode_read(parent_inode, (char*) &de, off, sizeof(de));
         if(read_size != sizeof(de)){
-            KERN_DEBUG("sys_pwd: error in inode_read size!\n");
+            // KERN_DEBUG("sys_pwd: error in inode_read size!\n");
             inode_unlockput(parent_inode);
             return -1;
         }
 
+        // KERN_DEBUG("sys_pwd_internal: in loop, finished inode_read\n");
+
         if(de.inum == curr_inode->inum){
             // Found the entry corresponding to curr_inode
+            // KERN_DEBUG("sys_pwd_internal: found entry corresponding to curr_inode\n");
             curr_name = de.name;
+            inode_unlockput(parent_inode);
             break;
         }
         inode_unlockput(parent_inode);
+
+        // KERN_DEBUG("sys_pwd_internal: bottom of iteration\n");
     }
 
     if(curr_name == 0){
@@ -177,8 +178,15 @@ void sys_pwd(tf_t *tf)
     KERN_DEBUG("START SYS_PWD\n");
 
     struct inode * curr_inode = tcb_get_cwd(get_curid());
-    int res = sys_pwd_internal(curr_inode);
-
+    
+    int res = 0;
+    if(curr_inode->inum == ROOTINO){
+        // Already at root node: only need to print /
+        dprintf("/\n");
+    } else {
+        res = sys_pwd_internal(curr_inode);
+    }
+    
     syscall_set_errno(tf, E_SUCC);
     syscall_set_retval1(tf, res);
 

@@ -139,12 +139,15 @@ void inode_lock(struct inode *ip)
         KERN_PANIC("inode_lock");
 
     spinlock_acquire(&inode_cache.lock);
-    while (ip->flags & I_BUSY)
+    while (ip->flags & I_BUSY){
+        // KERN_DEBUG("inode_lock: ip->flags is busy, will sleep...\n");
         thread_sleep(ip, &inode_cache.lock);
+    }
     ip->flags |= I_BUSY;
     spinlock_release(&inode_cache.lock);
 
     if (!(ip->flags & I_VALID)) {
+        // KERN_DEBUG("inode_lock: ip->flags is not valid, will read\n");
         bp = bufcache_read(ip->dev, IBLOCK(ip->inum));
         dip = (struct dinode *) bp->data + ip->inum % IPB;
         ip->type = dip->type;
