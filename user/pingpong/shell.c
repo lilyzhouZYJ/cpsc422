@@ -12,13 +12,13 @@ char input_buf[BUFLEN];
 // Get first element of command
 void get_first_element(char * input, int input_start, int * start, int * end)
 {
-    // printf("get_first_element with input %s, input_start %d\n", input, input_start);
+    printf("get_first_element with input %s, input_start %d\n", input, input_start);
 
     int start_idx = -1; // start index of the first element of input
     int input_len = strlen(input);
 
     for(int i = input_start; i <= input_len; i++){
-        if(input[i] == ' ' || input[i] == '\0'){
+        if(input[i] == ' ' || input[i] == '\0' || input[i] == '\b' || input[i] == '\x7f'){
             if(start_idx != -1){
                 // Reached the end of the element
                 *start = start_idx;
@@ -740,7 +740,7 @@ int process_input(char * input)
         printf("shell: failed to parse command\n");
         return -1;
     }
-    // printf("[d] process_input: fetched first element with start %d, end %d\n", start, end);
+    printf("[d] process_input: fetched first element with start %d, end %d\n", start, end);
 
     // Copy command
     char command[end-start+1];
@@ -749,7 +749,7 @@ int process_input(char * input)
 
     input += end;
 
-    // printf("[d] process_input: command is %s, remaining input is %s\n", command, input);
+    printf("[d] process_input: command is %s with len %d, remaining input is %s\n", command, strlen(command), input);
 
     return process_command(command, input);
 }
