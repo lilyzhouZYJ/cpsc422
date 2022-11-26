@@ -83,7 +83,7 @@ int includes_recursion(char * input)
         char element[end-start+1];
         element[end-start] = '\0';
         strncpy(element, input+start, end-start);
-        printf("start %d, end %d, element %s\n", start, end, element);
+        // printf("start %d, end %d, element %s\n", start, end, element);
         if(strcmp(element, "-r") == 0){
             // found -r flag
             return 1;
@@ -93,6 +93,32 @@ int includes_recursion(char * input)
     }
 
     return 0;
+}
+
+void join_path(char * path1, char * path2, char * buffer){
+    printf("join path: %s and %s ", path1, path2);
+
+    int len1 = strlen(path1);
+    if(*path2 == '/'){
+        path2++;
+    }
+    int len2 = strlen(path2);
+
+    strncpy(buffer, path1, len1);
+    int buf_size = len1;
+
+    // Check if we need to manually add /
+    if(buffer[len1-1] != '/'){
+        buffer[len1] = '/';
+        buf_size++;
+    }
+
+    strncpy(buffer+buf_size, path2, len2);
+    buf_size += len2;
+
+    buffer[buf_size] = '\0';
+
+    printf("result %s\n", buffer);
 }
 
 // Helper: get only the last-level name from a path
@@ -199,6 +225,23 @@ int non_recursive_cp(char * src, char * dest)
 
     return 0;
 }
+
+// // Helper: make sure dest is not a subdirectory of src
+// int is_dest_subdir_of_src(char * src, char * dest)
+// {
+//     int dest_fd = open(dest, O_RDONLY);
+//     if(dest_fd < 0){
+//         return -1;
+//     }
+
+//     // Follow .. to find each ancestor
+//     struct dirent de;
+//     while(read(dest_fd, (char*)&de, sizeof(de)) == sizeof(de)){
+//         if(de.inum != 0 && strcmp(de.name, "..")){
+//             // Found parent
+//         }
+//     }
+// }
 
 // Helper
 int recursive_cp(char * src, char * dest)
@@ -346,6 +389,150 @@ int process_cp(char * args)
     }
 }
 
+// Helper
+int recursive_rm(char * path)
+{
+    printf("IN RECURSIVE_RM with path %s\n", path);
+
+    // (1) Open path
+    int path_fd = open(path, O_RDONLY);
+    if(path_fd < 0){
+        printf("rm: cannot open path %s\n", path);
+        return -1;
+    }
+
+    // (2) Check path file type
+    struct file_stat path_stat;
+    if(fstat(path_fd, &path_stat) < 0){
+        close(path_fd);
+        printf("rm: error fetching stat for path %s\n", path);
+        return -1;
+    }
+    // If path is a file, this is non-recursive: just unlink it
+    if(path_stat.type == T_FILE){
+        printf("[d] recursive_rm: path %s is file\n", path);
+        close(path_fd);
+        return unlink(path);
+    }
+
+    // Remove all files + subdirectories of path
+    struct dirent de;
+    char buffer[128];
+    while(read(path_fd, (char*)&de, sizeof(de)) == sizeof(de)){
+        printf("[d] recursive_rm: read directory entry %s, %d\n", de.name, de.inum);
+        if(de.inum != 0 && strcmp(de.name, ".") != 0 && strcmp(de.name, "..") != 0){
+            join_path(path, de.name, buffer);
+
+            if(recursive_rm(buffer) < 0){
+                printf("rm: failed to remove %s\n", de.name);
+                close(path_fd);
+                return -1;
+            }
+        }
+    }
+
+    close(path_fd);
+    unlink(path);
+    return 0;
+}
+
+int process_rm(char * args)
+{
+    printf("[d] IN PROCESS_RM with args %s\n", args);
+
+    // Check if this is recursive
+    int is_recursive = includes_recursion(args);
+
+    // Fetch path
+    int start = -1, end = -1;
+    get_first_non_arg_element(args, &start, &end);
+    if(start < 0 || start == end){
+        printf("rm: missing operand\n");
+        return -1;
+    }
+
+    char path[end-start+1];
+    strncpy(path, args+start, end-start);
+    path[end-start] = '\0';
+
+    printf("[d] process_rm: path %s, recursive %d\n", path, is_recursive);
+
+    // Open path
+    int path_fd = open(path, O_RDONLY);
+    if(path_fd < 0){
+        printf("cp: cannot find path %s\n", path);
+        return -1;
+    }
+
+    // Get path file type
+    struct file_stat path_stat;
+    if(fstat(path_fd, &path_stat) < 0){
+        printf("rm: error fetching stat for path %s\n", path);
+        close(path_fd);
+        return -1;
+    }
+
+    close(path_fd);
+    
+    if(path_stat.type == T_FILE){
+        // If path is a file, just unlink it
+        unlink(path);
+    } else {
+        // Path is directory; must be recursive
+        if(is_recursive == 0){
+            printf("rm: path %s is a directory, but no recursive flag is given\n", path);
+            return -1;
+        }
+        // Go to recursive case
+        return recursive_rm(path);
+    }
+
+    return 0;
+}
+
+int process_mv(char * args)
+{
+    printf("[d] IN PROCESS_MV with args %s\n", args);
+
+    // process_cp + process_rm
+    if(process_cp(args) < 0){
+        printf("mv: error\n");
+        return -1;
+    }
+    if(process_rm(args) < 0){
+        printf("mv: error\n");
+        return -1;
+    }
+    return 0;
+}
+
+int process_touch(char * args)
+{
+    printf("[d] IN PROCESS_TOUCH\n");
+
+    // Get the first non-arg element
+    int start = -1, end = -1;
+    get_first_non_arg_element(args, &start, &end);
+
+    if(start < 0 || start == end){
+        printf("touch: missing operand\n");
+        return -1;
+    }
+
+    // Copy into path
+    char path[128];
+    strncpy(path, args+start, end-start);
+    path[end-start] = '\0';
+
+    int fd = open(path, O_CREATE);
+    if(fd < 0){
+        printf("touch: failed to create file\n");
+        return -1;
+    }
+
+    return 0;
+}
+
 int process_mkdir(char * args)
 {
     printf("[d] IN PROCESS_MKDIR\n");
@@ -367,7 +554,7 @@ int process_mkdir(char * args)
     // Remove path from the args string
     args += end;
 
-    printf("[d] process_mkdir: path is %s, remaining args is %s\n", path, args);
+    // printf("[d] process_mkdir: path is %s, remaining args is %s\n", path, args);
 
     return mkdir(path);
 }
@@ -400,7 +587,12 @@ int process_cd(char * args)
 
     // printf("[d] process_cd: path is %s, remaining args is %s\n", path, args);
 
-    return chdir(path);
+    if(chdir(path) < 0){
+        printf("cd: could not change directory to %s\n", path);
+        return -1;
+    } else {
+        return 0;
+    }
 }
 
 int process_pwd(char * args)
@@ -515,6 +707,15 @@ int process_command(const char * command, char * args)
     } else if (strcmp(command, "cp") == 0){
         printf("[d] FOUND CP\n");
         return process_cp(args);
+    } else if (strcmp(command, "rm") == 0){
+        printf("[d] FOUND RM\n");
+        return process_rm(args);
+    } else if (strcmp(command, "mv") == 0){
+        printf("[d] FOUND MV\n");
+        return process_mv(args);
+    } else if (strcmp(command, "touch") == 0){
+        printf("[d] FOUND TOUCH\n");
+        return process_touch(args);
     }
 
     printf("shell: not a valid command\n");
@@ -526,7 +727,7 @@ int process_command(const char * command, char * args)
  */
 int process_input(char * input)
 {
-    printf("[d] IN PROCESS_INPUT with input %s\n", input);
+    // printf("[d] IN PROCESS_INPUT with input %s\n", input);
 
     if(input == NULL){
         printf("process: input is null!\n");
@@ -539,7 +740,7 @@ int process_input(char * input)
         printf("shell: failed to parse command\n");
         return -1;
     }
-    printf("[d] process_input: fetched first element with start %d, end %d\n", start, end);
+    // printf("[d] process_input: fetched first element with start %d, end %d\n", start, end);
 
     // Copy command
     char command[end-start+1];
@@ -548,7 +749,7 @@ int process_input(char * input)
 
     input += end;
 
-    printf("[d] process_input: command is %s, remaining input is %s\n", command, input);
+    // printf("[d] process_input: command is %s, remaining input is %s\n", command, input);
 
     return process_command(command, input);
 }

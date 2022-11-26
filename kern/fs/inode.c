@@ -136,7 +136,7 @@ void inode_lock(struct inode *ip)
     struct dinode *dip;
 
     if (ip == 0 || ip->ref < 1)
-        KERN_PANIC("inode_lock");
+        KERN_PANIC("inode_lock with ip %x and ip->ref %d\n", ip, ip->ref);
 
     spinlock_acquire(&inode_cache.lock);
     while (ip->flags & I_BUSY){

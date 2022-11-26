@@ -41,10 +41,12 @@ int sys_pwd_internal(struct inode * curr_inode)
     char * curr_name = 0;
 
     // Fetch parent inode
+    // KERN_DEBUG("going to lock curr_inode %x with ref %d\n", curr_inode, curr_inode->ref);
     inode_lock(curr_inode);
     uint32_t poff;
     struct inode * parent_inode = dir_lookup(curr_inode, "..", &poff);
-    inode_unlockput(curr_inode);
+    // KERN_DEBUG("going to unlock curr_inode %x with ref %d\n", curr_inode, curr_inode->ref);
+    inode_unlock(curr_inode);
 
     if(parent_inode == NULL){
         KERN_DEBUG("sys_pwd: error\n");
@@ -55,9 +57,10 @@ int sys_pwd_internal(struct inode * curr_inode)
     // (2) Find the entry that matches the inode number of curr_inode
     // (3) Save the name of curr_inode
     struct dirent de;
+    // KERN_DEBUG("going to lock parent_inode %x with ref %d\n", parent_inode, parent_inode->ref);
+    inode_lock(parent_inode);
     for(uint32_t off = 0; off < parent_inode->size; off += sizeof(de)){
         // KERN_DEBUG("sys_pwd_internal: in loop\n");
-        inode_lock(parent_inode);
 
         // KERN_DEBUG("sys_pwd_internal: in loop, will call inode_read\n");
         int read_size = inode_read(parent_inode, (char*) &de, off, sizeof(de));
@@ -73,23 +76,25 @@ int sys_pwd_internal(struct inode * curr_inode)
             // Found the entry corresponding to curr_inode
             // KERN_DEBUG("sys_pwd_internal: found entry corresponding to curr_inode\n");
             curr_name = de.name;
-            inode_unlockput(parent_inode);
             break;
         }
-        inode_unlockput(parent_inode);
-
         // KERN_DEBUG("sys_pwd_internal: bottom of iteration\n");
     }
 
     if(curr_name == 0){
+        inode_unlockput(parent_inode);
         KERN_PANIC("sys_pwd: no name found\n");
     }
+
+    // KERN_DEBUG("going to unlock parent_inode with ref %d\n", parent_inode->ref);
+    inode_unlock(parent_inode);
+    // KERN_DEBUG("parent_inode now has ref %d\n", parent_inode->ref);
 
     // Recurse on parent if not at root yet
     int res = sys_pwd_internal(parent_inode);
 
     // Print current
-    dprintf("/%s\n", curr_name);
+    dprintf("/%s", curr_name);
     return res;
 }
 
@@ -97,6 +102,8 @@ int sys_pwd_internal(struct inode * curr_inode)
 void sys_pwd(tf_t *tf)
 {
     KERN_DEBUG("START SYS_PWD\n");
+
+    begin_trans();
 
     struct inode * curr_inode = tcb_get_cwd(get_curid());
     
@@ -106,10 +113,13 @@ void sys_pwd(tf_t *tf)
         dprintf("/\n");
     } else {
         res = sys_pwd_internal(curr_inode);
+        dprintf("\n");
     }
     
     syscall_set_errno(tf, E_SUCC);
     syscall_set_retval1(tf, res);
+
+    commit_trans();
 
     KERN_DEBUG("END SYS_PWD\n");
 }
@@ -662,7 +672,7 @@ void sys_open(tf_t *tf)
         }
         // KERN_DEBUG("sys_open: INODE CREATION SUCCESS\n");
     } else {
-        // KERN_DEBUG("sys_open: NOT CREATE MODE\n");
+        KERN_DEBUG("sys_open: NOT CREATE MODE\n");
 
         if ((ip = namei(path)) == 0) {
             KERN_DEBUG("sys_open: oops why is ip 0\n");
@@ -672,7 +682,7 @@ void sys_open(tf_t *tf)
         }
         inode_lock(ip);
         if (ip->type == T_DIR && omode != O_RDONLY) {
-            // KERN_DEBUG("sys_open: ip->type is %d and omode is %d\n", ip->type, omode);
+            KERN_DEBUG("sys_open: ip->type is %d and omode is %d\n", ip->type, omode);
             inode_unlockput(ip);
             syscall_set_retval1(tf, -1);
             syscall_set_errno(tf, E_DISK_OP);
@@ -680,10 +690,10 @@ void sys_open(tf_t *tf)
         }
     }
 
-    // KERN_DEBUG("sys_open: TRYING TO ALLOCATE FILE\n");
+    KERN_DEBUG("sys_open: TRYING TO ALLOCATE FILE\n");
 
     if ((f = file_alloc()) == 0 || (fd = fdalloc(f)) < 0) {
-        // KERN_DEBUG("sys_open: ALLOCATION FAILED\n");
+        KERN_DEBUG("sys_open: ALLOCATION FAILED\n");
         if (f)
             file_close(f);
         inode_unlockput(ip);
@@ -693,7 +703,7 @@ void sys_open(tf_t *tf)
     }
     inode_unlock(ip);
 
-    // KERN_DEBUG("sys_open: SETTING UP FILE ATTRIBUTES (including f->type to FD_INODE\n");
+    KERN_DEBUG("sys_open: SETTING UP FILE ATTRIBUTES (including f->type to FD_INODE\n");
 
     f->type = FD_INODE;
     f->ip = ip;
@@ -703,7 +713,7 @@ void sys_open(tf_t *tf)
     syscall_set_retval1(tf, fd);
     syscall_set_errno(tf, E_SUCC);
 
-    // KERN_DEBUG("END SYS_OPEN\n");
+    KERN_DEBUG("END SYS_OPEN\n");
 }
 
 void sys_mkdir(tf_t *tf)
