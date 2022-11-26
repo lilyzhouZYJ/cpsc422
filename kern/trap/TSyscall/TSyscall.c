@@ -13,6 +13,7 @@
 
 static char sys_buf[NUM_IDS][PAGESIZE];
 
+/* System call for reading a line of input from console. */
 void sys_readline(tf_t *tf)
 {
     // Get syscall arguments

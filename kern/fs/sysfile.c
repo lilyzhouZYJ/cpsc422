@@ -23,39 +23,80 @@ char kernel_buffer[BUFFER_SIZE];
 struct file_stat kernel_st;
 spinlock_t kernel_buffer_lock;
 
-void sys_ls(tf_t *tf)
+int sys_pwd_internal(struct inode * curr_inode)
 {
-    // // Read input from syscall
-    // uintptr_t user_path = syscall_get_arg2(tf); // ebx
-    // int user_path_len = syscall_get_arg3(tf); // ecx
+    // Error checking
+    if(curr_inode == NULL){
+        KERN_DEBUG("sys_pwd_internal: curr_inode is null\n");
+        return -1;
+    }
 
-    // // Check length
-    // if(user_path_len >= 128){
-    //     // Exceeds max buffer length
-    //     syscall_set_errno(tf, E_INVAL_ID);
-    //     syscall_set_retval1(tf, -1);
-    //     return;
-    // }
+    // Base: reaching root directory
+    if(curr_inode->inum == ROOTINO){
+        // Only need to print '/'
+        dprintf("/\n");
+        return 0;
+    }
 
-    // // Check user pointer
-    // if (!(VM_USERLO <= user_path && user_path + user_path_len <= VM_USERHI)) {
-    //     // Outside user address space
-    //     syscall_set_errno(tf, E_INVAL_ADDR);
-    //     syscall_set_retval1(tf, -1);
-    //     return;
-    // }
+    char * curr_name = 0;
 
-    // // Copy path from user to kernel
-    // char path[user_path_len + 1];
-    // size_t n_copied = pt_copyin(get_curid(), user_path, path, user_path_len);
-    // if(n_copied != user_path_len){
-    //     syscall_set_errno(tf, E_BADF);
-    //     syscall_set_retval1(tf, -1);
-    //     return;
-    // }
-    // path[user_path_len] = '\0';
+    // Fetch parent inode
+    inode_lock(curr_inode);
+    uint32_t poff;
+    struct inode * parent_inode = dir_lookup(curr_inode, "..", &poff);
+    inode_unlockput(curr_inode);
 
+    if(parent_inode == NULL){
+        KERN_DEBUG("sys_pwd: error\n");
+        return -1;
+    }
 
+    // (1) Loop through all the subdirectory entries of parent_inode
+    // (2) Find the entry that matches the inode number of curr_inode
+    // (3) Save the name of curr_inode
+    struct dirent de;
+    for(uint32_t off = 0; off < parent_inode->size; off += sizeof(de)){
+        inode_lock(parent_inode);
+
+        int read_size = inode_read(parent_inode, (char*) &de, off, sizeof(de));
+        if(read_size != sizeof(de)){
+            KERN_DEBUG("sys_pwd: error in inode_read size!\n");
+            inode_unlockput(parent_inode);
+            return -1;
+        }
+
+        if(de.inum == curr_inode->inum){
+            // Found the entry corresponding to curr_inode
+            curr_name = de.name;
+            break;
+        }
+        inode_unlockput(parent_inode);
+    }
+
+    if(curr_name == 0){
+        KERN_PANIC("sys_pwd: no name found\n");
+    }
+
+    // Recurse on parent if not at root yet
+    int res = sys_pwd_internal(parent_inode);
+
+    // Print current
+    dprintf("/%s\n", curr_name);
+    return res;
+}
+
+/* System call for pwd*/
+void sys_pwd(tf_t *tf)
+{
+    KERN_DEBUG("START SYS_PWD\n");
+
+    struct inode * curr_inode = tcb_get_cwd(get_curid());
+    int res = sys_pwd_internal(curr_inode);
+
+    syscall_set_errno(tf, E_SUCC);
+    syscall_set_retval1(tf, res);
+
+    KERN_DEBUG("END SYS_PWD\n");
 }
 
 /**

@@ -23,7 +23,6 @@ void get_first_element(char * input, int * start, int * end)
                 // Reached the end of the element
                 *start = start_idx;
                 *end = i;
-                printf("get_first_element: first element has start %d, end %d\n", *start, *end);
                 return;
             }
             // Otherwise just ignore the whitespace
@@ -33,13 +32,18 @@ void get_first_element(char * input, int * start, int * end)
                 start_idx = i;
             }
         }
-        // Move pointer forward
-        i++;
     }
 }
 
-int process_ls(char * args){
+int process_pwd(char * args)
+{
+    printf("IN PROCESS_PWD\n");
 
+    return pwd();
+}
+
+int process_ls(char * args)
+{
     printf("IN PROCESS_LS\n");
 
     if(args == NULL){
@@ -52,16 +56,14 @@ int process_ls(char * args){
     get_first_element(args, &start, &end);
     
     // Get path
-    char * path = 0;
+    char path[128];
     if(start == end || start < 0){
         // There is no next element
-        char path_tmp[] = ".";
-        path = path_tmp;
+        path[0] = '.';
+        path[1] = '\0';
     } else {
-        char path_tmp[end-start+1];
-        strncpy(path_tmp, args+start, end-start);
-        path_tmp[end-start] = '\0';
-        path = path_tmp;
+        strncpy(path, args+start, end-start);
+        path[end-start] = '\0';
 
         // Remove path from the args string
         args += end;
@@ -129,6 +131,9 @@ int process_command(const char * command, char * args)
     if(strcmp(command, "ls") == 0){
         printf("FOUND LS\n");
         return process_ls(args);
+    } else if (strcmp(command, "pwd") == 0){
+        printf("FOUND PWD\n");
+        return process_pwd(args);
     }
 
     printf("shell: not a valid command\n");

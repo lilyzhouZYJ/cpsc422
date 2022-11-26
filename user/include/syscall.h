@@ -11,16 +11,18 @@
 #include <x86.h>
 #include <file.h>
 
-static gcc_inline void sys_ls(const char *path)
+static gcc_inline int sys_pwd()
 {
-    int path_len = strlen(path);
+    int errno;
+    int ret;
 
-    asm volatile ("int %0"
-                  :: "i" (T_SYSCALL),
-                     "a" (SYS_ls),
-                     "b" (path),
-                     "c" (path_len)
+    asm volatile ("int %2"
+                  : "=a" (errno), "=b" (ret)
+                  : "i" (T_SYSCALL),
+                     "a" (SYS_pwd)
                   : "cc", "memory");
+
+    return errno ? -1 : ret;
 }
 
 static gcc_inline void sys_readline(const char *prompt, char * buffer)
