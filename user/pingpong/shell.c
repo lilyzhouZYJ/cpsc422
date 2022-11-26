@@ -506,6 +506,46 @@ int process_mv(char * args)
     return 0;
 }
 
+int process_cat(char * args)
+{
+    printf("[d] IN PROCESS_CAT\n");
+
+    // Get the first non-arg element
+    int start = -1, end = -1;
+    get_first_non_arg_element(args, &start, &end);
+
+    if(start < 0 || start == end){
+        printf("cat: missing operand\n");
+        return -1;
+    }
+
+    // Copy into path
+    char path[128];
+    strncpy(path, args+start, end-start);
+    path[end-start] = '\0';
+
+    // Open file
+    int fd = open(path, O_RDONLY);
+    if(fd < 0){
+        printf("cat: cannot open file %s\n", path);
+        return -1;
+    }
+
+    // Read and print
+    char buffer[9000];
+    int n_read;
+    while((n_read = read(fd, buffer, 9000)) > 0){
+        printf(buffer);
+    }
+
+    if(n_read < 0){
+        printf("cat: error in reading\n");
+        return -1;
+    }
+
+    return 0;
+}
+
 int process_touch(char * args)
 {
     printf("[d] IN PROCESS_TOUCH\n");
@@ -716,6 +756,9 @@ int process_command(const char * command, char * args)
     } else if (strcmp(command, "touch") == 0){
         printf("[d] FOUND TOUCH\n");
         return process_touch(args);
+    } else if (strcmp(command, "cat") == 0){
+        printf("[d] FOUND CAT\n");
+        return process_cat(args);
     }
 
     printf("shell: not a valid command\n");
