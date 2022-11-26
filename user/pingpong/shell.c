@@ -17,9 +17,11 @@ void get_first_element(char * input, int input_start, int * start, int * end)
     int start_idx = -1; // start index of the first element of input
     int input_len = strlen(input);
 
+    int is_string = 0;
+
     for(int i = input_start; i <= input_len; i++){
         if(input[i] == ' ' || input[i] == '\0' || input[i] == '\b' || input[i] == '\x7f'){
-            if(start_idx != -1){
+            if(is_string == 0 && start_idx != -1){
                 // Reached the end of the element
                 *start = start_idx;
                 *end = i;
@@ -30,6 +32,18 @@ void get_first_element(char * input, int input_start, int * start, int * end)
             if(start_idx == -1){
                 // Reached the start of an element
                 start_idx = i;
+
+                if(input[i] == '"'){
+                    // We are looking for a closing quotation mark
+                    is_string = 1;
+                }
+            } else {
+                if(input[i] == '"' && is_string == 1){
+                    // Found closing quotation mark
+                    *start = start_idx;
+                    *end = i + 1;
+                    return;
+                }
             }
         }
     }
@@ -506,6 +520,89 @@ int process_mv(char * args)
     return 0;
 }
 
+int process_redir(char * string, char * args)
+{
+    // Process string: make sure to remove " at the front and end 
+    string++;   
+    int string_len = strlen(string);
+    string[string_len-1] = '\0';
+    string_len--;
+
+    // Get the non-arg elements
+    int start = -1, end = -1;
+    get_first_non_arg_element(args, &start, &end);
+    if(start < 0 || start == end){
+        printf("redir: missing operand\n");
+        return -1;
+    }
+
+    char op[end-start+1];
+    strncpy(op, args+start, end-start);
+    op[end-start] = '\0';
+
+    args += end;
+
+    start = -1, end = -1;
+    get_first_non_arg_element(args, &start, &end);
+    if(start < 0 || start == end){
+        printf("redir: missing operand\n");
+        return -1;
+    }
+
+    char path[end-start+1];
+    strncpy(path, args+start, end-start);
+    path[end-start] = '\0';
+
+    printf("redir: string is %s, op is %s, file is %s\n", string, op, path);
+
+    // Determine if we are writing or appending
+    int is_append = 0;
+    if(strcmp(op, ">>") == 0){
+        is_append = 1;
+    } else if (strcmp(op, ">") == 0){
+        is_append = 0;
+    } else {
+        printf("redir: expecting > or >> as second argument\n");
+        return -1;
+    }
+
+    // Open file
+    int fd = open(path, O_RDWR);
+    if(fd < 0){
+        printf("redir: cannot open file\n");
+        return -1;
+    }
+
+    // Make sure path is a file
+    struct file_stat stat;
+    if(fstat(fd, &stat) < 0){
+        printf("redir: cannot get file stats\n");
+        return -1;
+    }
+    if(stat.type != T_FILE){
+        printf("redir: %s is not a file\n", path);
+        return -1;
+    }
+
+    if(is_append == 1){
+        // Append to file
+        char buf[900];
+        while (read(fd, buf, 900) > 0) {}
+        if(write(fd, string, string_len) != string_len){
+            printf("redir: error in append\n");
+            return -1;
+        }
+    } else {
+        // Write to file
+        if(write(fd, string, string_len) != string_len){
+            printf("redir: error in write\n");
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 int process_cat(char * args)
 {
     printf("[d] IN PROCESS_CAT\n");
@@ -537,6 +634,7 @@ int process_cat(char * args)
     while((n_read = read(fd, buffer, 9000)) > 0){
         printf(buffer);
     }
+    printf("\n");
 
     if(n_read < 0){
         printf("cat: error in reading\n");
@@ -722,7 +820,7 @@ int process_ls(char * args)
 /*
  * Process the given command.
  */
-int process_command(const char * command, char * args)
+int process_command(char * command, char * args)
 {
     printf("[d] IN PROCESS_COMMAND with command %s (len %d)\n", command, strlen(command));
 
@@ -759,6 +857,9 @@ int process_command(const char * command, char * args)
     } else if (strcmp(command, "cat") == 0){
         printf("[d] FOUND CAT\n");
         return process_cat(args);
+    } else if (*command == '"'){
+        printf("[d] FOUND REDIR\n");
+        return process_redir(command, args);
     }
 
     printf("shell: not a valid command\n");
