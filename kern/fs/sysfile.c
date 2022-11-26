@@ -23,6 +23,92 @@ char kernel_buffer[BUFFER_SIZE];
 struct file_stat kernel_st;
 spinlock_t kernel_buffer_lock;
 
+/* System call for cd*/
+void sys_cd(tf_t *tf)
+{
+    KERN_DEBUG("START SYS_CD\n");
+
+    // Read input from syscall
+    uintptr_t user_path = syscall_get_arg2(tf); // ebx
+    size_t user_path_len = syscall_get_arg3(tf); // ecx
+
+    // Check size
+    if(user_path_len > 128){
+        // Exceeds max path length
+        syscall_set_errno(tf, E_INVAL_ID);
+        syscall_set_retval1(tf, -1);
+        return;
+    }
+
+    // Copy path from user to kernel
+    char kernel_path[user_path_len+1];
+    size_t n_copied = pt_copyin(get_curid(), user_path, kernel_path, user_path_len);
+    if(n_copied != user_path_len){
+        // Exceeds max path length
+        syscall_set_errno(tf, E_BADF);
+        syscall_set_retval1(tf, -1);
+        return;
+    }
+    kernel_path[user_path_len] = '\0';
+
+    KERN_DEBUG("sys_cd: path is %s\n", kernel_path);
+
+    // // (1) Path is '.', do nothing
+    // if(strcmp(kernel_path, ".") == 0){
+    //     syscall_set_errno(tf, E_SUCC);
+    //     syscall_set_retval1(tf, 0);
+
+    //     KERN_DEBUG("END SYS_CD with no path change\n");
+    //     return;
+    // }
+
+    // Get inode for curr directory
+    struct inode * curr_inode = tcb_get_cwd(get_curid());
+
+    if (*kernel_path == '\0'){
+        // (1) Path is empty; need to go to root
+        if(curr_inode->inum != ROOTINO){
+            // Only change directory if not already at root
+            struct inode * parent_inode;
+            uint32_t poff;
+            while((parent_inode = dir_lookup(curr_inode, "..", &poff)) != NULL){
+                if(curr_inode->inum == parent_inode->inum){
+                    // Stuck with the same directory
+                    break;
+                }
+                curr_inode = parent_inode;
+            }
+        }
+    } else {
+        // (2) Path is non-empty; follow the path and find target inode
+        struct inode * next_inode;
+        while((next_inode = namei(kernel_path)) != NULL){
+            if(next_inode->inum == curr_inode->inum){
+                // Stuck with the same directory
+                break;
+            }
+
+            // Make sure next_inode is directory
+            if(next_inode->type != T_DIR){
+                KERN_DEBUG("sys_cd: curr_inode is not a directory but has type %d\n", curr_inode->type);
+                syscall_set_errno(tf, E_BADF);
+                syscall_set_retval1(tf, -1);
+                return;
+            }
+
+            curr_inode = next_inode;
+        }
+    }
+
+    // Set inode to current working directory
+    tcb_set_cwd(get_curid(), curr_inode);    
+
+    syscall_set_errno(tf, E_SUCC);
+    syscall_set_retval1(tf, 0);
+
+    KERN_DEBUG("END SYS_CD\n");
+}
+
 int sys_pwd_internal(struct inode * curr_inode)
 {
     // Error checking

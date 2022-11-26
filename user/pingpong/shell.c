@@ -35,10 +35,40 @@ void get_first_element(char * input, int * start, int * end)
     }
 }
 
+int process_cd(char * args)
+{
+    printf("IN PROCESS_CD\n");
+
+    if(args == NULL){
+        printf("ls: args is null!\n");
+        return -1;
+    }
+
+    // Get the first element of args
+    int start = -1, end = -1;
+    get_first_element(args, &start, &end);
+
+    // Get path
+    char path[128];
+    if(start == end || start < 0){
+        // There is no argument to cd
+        path[0] = '\0';
+    } else {
+        strncpy(path, args+start, end-start);
+        path[end-start] = '\0';
+
+        // Remove path from the args string
+        args += end;
+    }
+
+    printf("process_cd: path is %s, remaining args is %s\n", path, args);
+
+    return cd(path);
+}
+
 int process_pwd(char * args)
 {
     printf("IN PROCESS_PWD\n");
-
     return pwd();
 }
 
@@ -134,6 +164,9 @@ int process_command(const char * command, char * args)
     } else if (strcmp(command, "pwd") == 0){
         printf("FOUND PWD\n");
         return process_pwd(args);
+    } else if (strcmp(command, "cd") == 0){
+        printf("FOUND CD\n");
+        return process_cd(args);
     }
 
     printf("shell: not a valid command\n");
