@@ -11,26 +11,6 @@
 #include <x86.h>
 #include <file.h>
 
-static gcc_inline int sys_cd(char * path)
-{
-    int errno;
-    int ret;
-
-    int path_len = strlen(path);
-    
-    DEBUG("syscall.h path is %s\n", path);
-
-    asm volatile ("int %2"
-                  : "=a" (errno), "=b" (ret)
-                  : "i" (T_SYSCALL),
-                     "a" (SYS_cd),
-                     "b" (path),
-                     "c" (path_len)
-                  : "cc", "memory");
-
-    return errno ? -1 : ret;
-}
-
 static gcc_inline int sys_pwd()
 {
     int errno;

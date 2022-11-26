@@ -12,7 +12,7 @@ char input_buf[BUFLEN];
 // Get first element of command
 void get_first_element(char * input, int input_start, int * start, int * end)
 {
-    printf("get_first_element with input %s, input_start %d\n", input, input_start);
+    // printf("get_first_element with input %s, input_start %d\n", input, input_start);
 
     int start_idx = -1; // start index of the first element of input
     int input_len = strlen(input);
@@ -40,14 +40,14 @@ void get_first_non_arg_element(char * input, int * start, int * end)
 {
     int input_start = 0;
     while(1){
-        printf("get_first_non_arg_element: input is %s\n", input);
+        // printf("get_first_non_arg_element: input is %s\n", input);
 
         // Get the first element
         *start = -1;
         *end = -1;
         get_first_element(input, input_start, start, end);
 
-        printf("get_first_non_arg_element: start is %d, end is %d\n", *start, *end);
+        // printf("get_first_non_arg_element: start is %d, end is %d\n", *start, *end);
 
         if(start < 0 || start == end){
             // No more element
@@ -56,11 +56,293 @@ void get_first_non_arg_element(char * input, int * start, int * end)
 
         // Check if the fetched element does not start with '-'
         if(*(input + *start) != '-'){
-            printf("get_first_non_arg_element: returning with start %d, end %d\n", *start, *end);
+            // printf("get_first_non_arg_element: returning with start %d, end %d\n", *start, *end);
             return;
         }
 
         input_start = *end;
+    }
+}
+
+// Helper function:
+// Check if the -r flag exists in input
+int includes_recursion(char * input)
+{
+    printf("[d] includes_recursion: input is %s\n", input);
+    int input_start = 0;
+    while(1){
+        int start = -1, end = -1;
+        get_first_element(input, input_start, &start, &end);
+
+        if(start < 0 || start == end){
+            // No more elements
+            return 0;
+        }
+
+        // Check if the fetched element is '-r'
+        char element[end-start+1];
+        element[end-start] = '\0';
+        strncpy(element, input+start, end-start);
+        printf("start %d, end %d, element %s\n", start, end, element);
+        if(strcmp(element, "-r") == 0){
+            // found -r flag
+            return 1;
+        }
+
+        input_start = end;
+    }
+
+    return 0;
+}
+
+// Helper: get only the last-level name from a path
+void get_last_name_from_path(char * path, char * buffer)
+{
+    int path_len = strlen(path);
+    int start = 0, end = path_len;
+
+    // If path ends with /, remove it
+    if(path[path_len-1] == '/'){
+        path_len--;
+        end = path_len - 1;
+    }
+
+    for(int i = end-1; i >= 0; i--){
+        if(path[i] == '/'){
+            // found start
+            start = i + 1;
+            break;
+        }
+    }
+
+    strncpy(buffer, path+start, end-start);
+    buffer[end-start] = '\0';
+
+    printf("get_name_from_path: path is %s, last elt is %s\n", path, buffer);
+}
+
+// Helper
+int non_recursive_cp(char * src, char * dest)
+{
+    printf("IN NON-RECURSIVE_CP with src %s, dest %s\n", src, dest);
+    
+    // (a) Open src
+    int src_fd = open(src, O_RDONLY);
+    if(src_fd < 0){
+        printf("cp: cannot open src %s\n", src);
+        return -1;
+    }
+
+    // (b) Try to open dest
+    int dest_fd = open(dest, O_CREATE);
+    if(dest_fd < 0){
+        // this may be due to dest being a directory;
+        // try to open as read-only
+        dest_fd = open(dest, O_RDONLY);
+        if(dest_fd < 0){
+            // dest does not exist
+            printf("cp: cannot open dest %s\n", dest);
+            return -1;
+        }
+
+        // dest is a directory; 
+        // need to create a file in it with same name as src
+        int dest_len = strlen(dest);
+        if(dest[dest_len-1] == '/'){
+            dest[dest_len-1] = '\0';
+            dest_len--;
+        }
+        char src_name[128];
+        get_last_name_from_path(src, src_name);
+        int src_len = strlen(src_name);
+        printf("[d] process_cp: src_name %s (%d), dest %s (%d)\n", src_name, src_len, dest, dest_len);
+        char dest_file[dest_len + src_len + 2];
+        dest_file[dest_len + src_len + 1] = '\0';
+        strncpy(dest_file, dest, dest_len);
+        dest_file[dest_len] = '/';
+        strncpy(dest_file+dest_len+1, src_name, src_len);
+
+        printf("[d] process_cp: dest is existing directory, so create %s\n", dest_file);
+
+        dest_fd = open(dest_file, O_CREATE | O_WRONLY);
+        if(dest_fd < 0){
+            printf("cp: error creating dest\n");
+            return -1;
+        }
+    } else {
+        // Open succeeded did not return -1, so dest is a file;
+        // re-open as writable
+        close(dest_fd);
+        dest_fd = open(dest, O_WRONLY);
+    }
+
+    // (c) Double check dest is a file now
+    struct file_stat dest_stat;
+    if(fstat(dest_fd, &dest_stat) < 0){
+        printf("cp: error fetching stat for dest %s\n", dest);
+        return -1;
+    }
+    if(dest_stat.type != T_FILE){
+        printf("cp: dest file is not a file\n");
+        return -1;
+    }
+
+    // (d) Copy from src to dest file
+    char buffer[9000];
+    int n_read;
+    while((n_read = read(src_fd, buffer, 9000)) > 0){
+        if(write(dest_fd, buffer, n_read) < n_read){
+            printf("cp: error in copying from src to dest\n");
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+// Helper
+int recursive_cp(char * src, char * dest)
+{
+    printf("IN RECURSIVE_CP with src %s, dest %s\n", src, dest);
+
+    // (1) Open src
+    int src_fd = open(src, O_RDONLY);
+    if(src_fd < 0){
+        printf("cp: cannot open src %s\n", src);
+        return -1;
+    }
+
+    // (2) Check src file type
+    struct file_stat src_stat;
+    if(fstat(src_fd, &src_stat) < 0){
+        close(src_fd);
+        printf("cp: error fetching stat for src %s\n", src);
+        return -1;
+    }
+    // If src is a file, go to non-recursive case
+    if(src_stat.type == T_FILE){
+        close(src_fd);
+        return non_recursive_cp(src, dest);
+    }
+
+    // (b) Try to open dest
+    int dest_fd = open(dest, O_CREATE);
+    if(dest_fd < 0){
+        // unclear if dest exists; 
+        // try to open as read-only to check if it is existing directory
+        dest_fd = open(dest, O_RDONLY);
+        if(dest_fd < 0){
+            // dest does not exist;
+            // try to create it
+            if(mkdir(dest) < 0){
+                printf("cp: cannot create dest %s\n", dest);
+                close(src_fd);
+                return -1;
+            }
+            dest_fd = open(dest, O_RDONLY);
+        }
+    }
+
+    // (c) Double check dest is a directory
+    if(dest_fd < 0){
+        close(src_fd);
+        printf("cp: cannot open dest\n");
+        return -1;
+    }
+    struct file_stat dest_stat;
+    if(fstat(dest_fd, &dest_stat) < 0){
+        close(src_fd);
+        close(dest_fd);
+        printf("cp: error fetching stat for dest %s\n", dest);
+        return -1;
+    }
+    if(dest_stat.type != T_DIR){
+        close(src_fd);
+        close(dest_fd);
+        printf("cp: dest is not a directory\n");
+        return -1;
+    }
+
+    // (d) Copy all files and subdirectories of src into dest
+    struct dirent de;
+    while(read(src_fd, (char*)&de, sizeof(de)) == sizeof(de)){
+        // printf("[d] recursive_cp: read directory entry %s\n", de.name);
+        if(de.inum != 0 && strcmp(de.name, ".") != 0 && strcmp(de.name, "..") != 0){
+            if(recursive_cp(de.name, dest) < 0){
+                printf("cp: failed to copy %s to %s\n", de.name, dest);
+                close(src_fd);
+                close(dest_fd);
+                return -1;
+            }
+        }
+    }
+
+    close(src_fd);
+    close(dest_fd);
+    return 0;
+}
+
+int process_cp(char * args)
+{
+    printf("[d] IN PROCESS_CP with args %s\n", args);
+
+    // Check if this is recursive
+    int is_recursive = includes_recursion(args);
+
+    // Fetch src and dest
+    int start = -1, end = -1;
+    get_first_non_arg_element(args, &start, &end);
+    if(start < 0 || start == end){
+        printf("cp: missing source operand\n");
+        return -1;
+    }
+
+    char src[end-start+1];
+    strncpy(src, args+start, end-start);
+    src[end-start] = '\0';
+    args += end;
+
+    start = -1, end = -1;
+    get_first_non_arg_element(args, &start, &end);
+    if(start < 0 || start == end){
+        printf("cp: missing destination operand\n");
+        return -1;
+    }
+
+    char dest[end-start+1];
+    strncpy(dest, args+start, end-start);
+    dest[end-start] = '\0';
+
+    printf("[d] process_cp: src %s, dest %s, recursive %d\n", src, dest, is_recursive);
+
+    // Open src
+    int src_fd = open(src, O_RDONLY);
+    if(src_fd < 0){
+        printf("cp: cannot open src %s\n", src);
+        return -1;
+    }
+
+    // Get src file type
+    struct file_stat src_stat;
+    if(fstat(src_fd, &src_stat) < 0){
+        printf("cp: error fetching stat for src %s\n", src);
+        close(src_fd);
+        return -1;
+    }
+
+    close(src_fd);
+    
+    if(src_stat.type == T_FILE){
+        // If src is a file, go to non-recursive case
+        return non_recursive_cp(src, dest);
+    } else {
+        // Src is directory; must be recursive
+        if(is_recursive == 0){
+            printf("cp: src %s is a directory, but no recursive flag is given\n", src);
+            return -1;
+        }
+        // Go to recursive case
+        return recursive_cp(src, dest);
     }
 }
 
@@ -118,7 +400,7 @@ int process_cd(char * args)
 
     // printf("[d] process_cd: path is %s, remaining args is %s\n", path, args);
 
-    return cd(path);
+    return chdir(path);
 }
 
 int process_pwd(char * args)
@@ -191,7 +473,7 @@ int process_ls(char * args)
         if(de.inum != 0 && strcmp(de.name, ".") && strcmp(de.name, "..")){
             if(is_first_entry != 1){
                 // not first entry; print with tab
-                printf("\t%s", de.name);
+                printf(" %s", de.name);
             } else {
                 // first entry; print without tab
                 printf("%s", de.name);
@@ -230,6 +512,9 @@ int process_command(const char * command, char * args)
     } else if (strcmp(command, "mkdir") == 0){
         printf("[d] FOUND MKDIR\n");
         return process_mkdir(args);
+    } else if (strcmp(command, "cp") == 0){
+        printf("[d] FOUND CP\n");
+        return process_cp(args);
     }
 
     printf("shell: not a valid command\n");
@@ -254,7 +539,7 @@ int process_input(char * input)
         printf("shell: failed to parse command\n");
         return -1;
     }
-    // printf("[d] process_input: fetched first element with start %d, end %d\n", start, end);
+    printf("[d] process_input: fetched first element with start %d, end %d\n", start, end);
 
     // Copy command
     char command[end-start+1];
@@ -263,7 +548,7 @@ int process_input(char * input)
 
     input += end;
 
-    // printf("[d] process_input: command is %s, remaining input is %s\n", command, input);
+    printf("[d] process_input: command is %s, remaining input is %s\n", command, input);
 
     return process_command(command, input);
 }

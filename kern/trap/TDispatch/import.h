@@ -10,7 +10,6 @@ void sys_spawn(tf_t *tf);
 void sys_yield(tf_t *tf);
 void sys_readline(tf_t *tf);
 void sys_pwd(tf_t *tf);
-void sys_cd(tf_t *tf);
 
 #endif  /* _KERN_ */
 

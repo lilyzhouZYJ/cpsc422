@@ -147,11 +147,6 @@ static struct inode *namex(char *path, bool nameiparent, char *name)
             inode_unlockput(ip);
             return 0;
         }
-        if(next->inum == ip->inum){
-            // Stuck on the same inode
-            inode_unlockput(ip);
-            break;
-        }
 
         inode_unlockput(ip);
         ip = next;
