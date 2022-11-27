@@ -14,7 +14,7 @@ List here the following info:
 4. and anything else you would like us to know
 
 
-# Description of what I implemented 
+# Description of what I implemented
 
 ## `ls`
 
@@ -51,7 +51,7 @@ List here the following info:
 - If `src` is a directory:
     - The recursive flag `-r` must be provided, and `dest` must be a directory.
     - If `dest` does not exist but its parent directory exists, it will be created.
-    - The files and subdirectories of `src` will be copied into `dest`.
+    - The files and subdirectories of `src` will be moved into `dest`.
 
 ## `rm`
 
@@ -63,7 +63,7 @@ List here the following info:
 ## `mkdir`
 
 - Supported syntax: `mkdir path`
-- `path` will be created if it doesn't already exist.
+- `path` will be created if it doesn't already exist but its parent directory exists.
 
 ## `cat`
 
