@@ -29,7 +29,7 @@ int sys_pwd_internal(struct inode * curr_inode)
 
     // Error checking
     if(curr_inode == NULL){
-        KERN_DEBUG("sys_pwd_internal: curr_inode is null\n");
+        // KERN_DEBUG("sys_pwd_internal: curr_inode is null\n");
         return -1;
     }
 
@@ -49,7 +49,7 @@ int sys_pwd_internal(struct inode * curr_inode)
     inode_unlock(curr_inode);
 
     if(parent_inode == NULL){
-        KERN_DEBUG("sys_pwd: error\n");
+        // KERN_DEBUG("sys_pwd: error\n");
         return -1;
     }
 
@@ -66,7 +66,7 @@ int sys_pwd_internal(struct inode * curr_inode)
         int read_size = inode_read(parent_inode, (char*) &de, off, sizeof(de));
         if(read_size != sizeof(de)){
             // KERN_DEBUG("sys_pwd: error in inode_read size!\n");
-            inode_unlockput(parent_inode);
+            inode_unlock(parent_inode);
             return -1;
         }
 
@@ -82,7 +82,7 @@ int sys_pwd_internal(struct inode * curr_inode)
     }
 
     if(curr_name == 0){
-        inode_unlockput(parent_inode);
+        inode_unlock(parent_inode);
         KERN_PANIC("sys_pwd: no name found\n");
     }
 
@@ -101,7 +101,7 @@ int sys_pwd_internal(struct inode * curr_inode)
 /* System call for pwd*/
 void sys_pwd(tf_t *tf)
 {
-    KERN_DEBUG("START SYS_PWD\n");
+    // KERN_DEBUG("START SYS_PWD\n");
 
     begin_trans();
 
@@ -121,7 +121,7 @@ void sys_pwd(tf_t *tf)
 
     commit_trans();
 
-    KERN_DEBUG("END SYS_PWD\n");
+    // KERN_DEBUG("END SYS_PWD\n");
 }
 
 /**
@@ -134,6 +134,7 @@ void sys_pwd(tf_t *tf)
  */
 static int fdalloc(struct file *f)
 {
+    // KERN_DEBUG("IN FDALLOC\n");
     // TODO
     // Get the list of open files for the current thread
     unsigned int curid = get_curid();
@@ -142,14 +143,17 @@ static int fdalloc(struct file *f)
     // Scan the list for available file descriptor
     for(int i = 0; i < NOFILE; i++){
         struct file * curr_f = openfiles[i];
+        // KERN_DEBUG("fdalloc: curr_f %x\n", curr_f);
         if(curr_f == NULL || curr_f->type == FD_NONE){
             // Found available file descriptor
+            // KERN_DEBUG("fdalloc: found file dscriptor\n");
             openfiles[i] = f;
             return i;
         }
     }
 
     // No free file descriptor; return -1
+    // KERN_DEBUG("fdalloc: no avialable fd\n");
     return -1;
 }
 
@@ -571,17 +575,17 @@ static struct inode *create(char *path, short type, short major, short minor)
         return 0;
     inode_lock(dp);
 
-    KERN_DEBUG("create: name %s, path %s\n", name, path);
-    KERN_DEBUG("create: gonna look up name using dir_lookup\n");
+    // KERN_DEBUG("create: name %s, path %s\n", name, path);
+    // KERN_DEBUG("create: gonna look up name using dir_lookup\n");
 
     if ((ip = dir_lookup(dp, name, &off)) != 0) {
-        KERN_DEBUG("create: oops, %s is found\n", name);
+        // KERN_DEBUG("create: oops, %s is found\n", name);
         inode_unlockput(dp);
         inode_lock(ip);
         if (type == T_FILE && ip->type == T_FILE)
             return ip;
         inode_unlockput(ip);
-        KERN_DEBUG("create: returning 0 because %s is found\n", name);
+        // KERN_DEBUG("create: returning 0 because %s is found\n", name);
         return 0;
     }
 
@@ -618,7 +622,7 @@ static struct inode *create(char *path, short type, short major, short minor)
 
     struct file_stat st;
     inode_stat(ip, &st);
-    KERN_DEBUG("created name %s with type %d\n", name, st.type);
+    // KERN_DEBUG("created name %s with type %d\n", name, st.type);
 
     // KERN_DEBUG("END CREATE\n");
 
@@ -656,7 +660,7 @@ void sys_open(tf_t *tf)
 
     omode = syscall_get_arg3(tf);
 
-    KERN_DEBUG("sys_open: path %s, path_len %d, omode %d\n", path, path_len, omode);
+    // KERN_DEBUG("sys_open: path %s, path_len %d, omode %d\n", path, path_len, omode);
 
     if (omode & O_CREATE) {
         // KERN_DEBUG("sys_open: START CREATING INODE\n");
@@ -672,17 +676,17 @@ void sys_open(tf_t *tf)
         }
         // KERN_DEBUG("sys_open: INODE CREATION SUCCESS\n");
     } else {
-        KERN_DEBUG("sys_open: NOT CREATE MODE\n");
+        // KERN_DEBUG("sys_open: NOT CREATE MODE\n");
 
         if ((ip = namei(path)) == 0) {
-            KERN_DEBUG("sys_open: oops why is ip 0\n");
+            // KERN_DEBUG("sys_open: oops why is ip 0\n");
             syscall_set_retval1(tf, -1);
             syscall_set_errno(tf, E_NEXIST);
             return;
         }
         inode_lock(ip);
         if (ip->type == T_DIR && omode != O_RDONLY) {
-            KERN_DEBUG("sys_open: ip->type is %d and omode is %d\n", ip->type, omode);
+            // KERN_DEBUG("sys_open: ip->type is %d and omode is %d\n", ip->type, omode);
             inode_unlockput(ip);
             syscall_set_retval1(tf, -1);
             syscall_set_errno(tf, E_DISK_OP);
@@ -690,10 +694,10 @@ void sys_open(tf_t *tf)
         }
     }
 
-    KERN_DEBUG("sys_open: TRYING TO ALLOCATE FILE\n");
+    // KERN_DEBUG("sys_open: TRYING TO ALLOCATE FILE\n");
 
     if ((f = file_alloc()) == 0 || (fd = fdalloc(f)) < 0) {
-        KERN_DEBUG("sys_open: ALLOCATION FAILED\n");
+        // KERN_DEBUG("sys_open: ALLOCATION FAILED\n");
         if (f)
             file_close(f);
         inode_unlockput(ip);
@@ -703,7 +707,7 @@ void sys_open(tf_t *tf)
     }
     inode_unlock(ip);
 
-    KERN_DEBUG("sys_open: SETTING UP FILE ATTRIBUTES (including f->type to FD_INODE\n");
+    // KERN_DEBUG("sys_open: SETTING UP FILE ATTRIBUTES (including f->type to FD_INODE\n");
 
     f->type = FD_INODE;
     f->ip = ip;
@@ -713,7 +717,7 @@ void sys_open(tf_t *tf)
     syscall_set_retval1(tf, fd);
     syscall_set_errno(tf, E_SUCC);
 
-    KERN_DEBUG("END SYS_OPEN\n");
+    // KERN_DEBUG("END SYS_OPEN\n");
 }
 
 void sys_mkdir(tf_t *tf)
@@ -794,7 +798,7 @@ void sys_chdir(tf_t *tf)
 
     struct file_stat st;
     inode_stat(ip, &st);
-    KERN_DEBUG("set cwd to path %s with type %d\n", path, st.type);
+    // KERN_DEBUG("set cwd to path %s with type %d\n", path, st.type);
 
     syscall_set_errno(tf, E_SUCC);
 }

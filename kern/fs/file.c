@@ -29,6 +29,7 @@ struct file *file_alloc(void)
 
     spinlock_acquire(&ftable.lock);
     for (f = ftable.file; f < ftable.file + NFILE; f++) {
+        // KERN_DEBUG("file_alloc: f = %d, f->ref = %d\n", f, f->ref);
         if (f->ref == 0) {
             f->ref = 1;
             spinlock_release(&ftable.lock);
@@ -36,6 +37,7 @@ struct file *file_alloc(void)
         }
     }
     spinlock_release(&ftable.lock);
+    // KERN_DEBUG("file_alloc failed\n");
     return 0;
 }
 

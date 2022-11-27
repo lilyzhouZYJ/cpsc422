@@ -83,6 +83,7 @@ static char *skipelem(char *path, char *name)
         // Copy first element into name
         strncpy(name, path + start, len);
         name[len] = '\0';
+        // KERN_DEBUG("name is %s\n", name);
     }
 
     // Return remaining path

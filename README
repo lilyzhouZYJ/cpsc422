@@ -12,3 +12,195 @@ List here the following info:
 2. whether you coded this assignment together, and if not, who worked on which part
 3. brief description of what you have implemented
 4. and anything else you would like us to know
+
+
+# Description of what I implemented 
+
+## `ls`
+
+- Supported syntax: `ls` or `ls dir-name`
+- Lists the files and subdirectories under the current working directory (if no argument is provided) or the specified directory (specified by `dir-name`), separated by a whitespace.
+
+## `pwd`
+
+- Supported syntax: `pwd`
+- Prints the full working directory.
+
+## `cd`
+
+- Supported syntax: `cd dir-name`
+- Change directory to `dir-name`
+
+## `cp`
+
+- Supported syntax; `cp [-r] src dest`
+- If `src` is a file:
+    - If `dest` is an existing file, its content will be clobbered by the content of `src`.
+    - If `dest` is a non-existing file but its parent directory exists, it will be created with a copy of the contents of `src`.
+- If `src` is a directory:
+    - The recursive flag `-r` must be provided, and `dest` must be a directory.
+    - If `dest` does not exist but its parent directory exists, it will be created.
+    - The files and subdirectories of `src` will be copied into `dest`.
+
+## `mv`
+
+- Supported syntax: `mv [-r] src dest`
+- If `src` is a file:
+    - If `dest` is an existing file, its content will be clobbered by the content of `src`.
+    - If `dest` is a non-existing file but its parent directory exists, it will be created with a copy of the contents of `src`.
+- If `src` is a directory:
+    - The recursive flag `-r` must be provided, and `dest` must be a directory.
+    - If `dest` does not exist but its parent directory exists, it will be created.
+    - The files and subdirectories of `src` will be copied into `dest`.
+
+## `rm`
+
+- Supported syntax: `rm [-r] path`
+- `path` must exist.
+- If `path` is a directory, the recursive flag `-r` must be provided; the directory itself, as well as all its contents, will be removed.
+- If `path` is a file, it will be removed.
+
+## `mkdir`
+
+- Supported syntax: `mkdir path`
+- `path` will be created if it doesn't already exist.
+
+## `cat`
+
+- Supported syntax: `cat file`
+- `file` must be an existing file.
+- The contents of `file` will be printed to console.
+
+## `touch`
+
+- Supported syntax: `touch file`
+- If `file` does not exist but its parent directory exists, it will be created.
+- If `file` already exists, the command will do nothing.
+
+## Write to file
+
+- Supported syntax: `"some content" > file`
+- The string must be surrounded by double quotation marks (`"`)
+- Trailing content may remain in file. For example, running `"123" > file` where `file` already contains `hello` will result in `123lo`.
+
+## Append to file
+
+- Supported syntax: `"some content" >> file`
+- The string must be surrounded by double quotation marks (`"`)
+- The string will be appended to the end of the file.
+
+# Sample Run
+
+```
+$ mkdir users
+$ mkdir users/lily
+$ ls
+README users
+$ cd users/lily
+$ pwd
+/users/lily
+$ mkdir jane_austen
+$ cd jane_austen
+
+[let's save the first line of Emma in a file]
+$ touch emma
+$ ls
+emma
+$ pwd
+/users/lily/jane_austen
+$ "Emma Woodhouse, handsome, clever and rich, with a comfortable home and happy disposition seemed to unite some of the best blessings of existence and had lived nearly twenty-one years in the world with very little to distress or vex her." > emma
+$ cat emma
+Emma Woodhouse, handsome, clever and rich, with a comfortable home and happy disposition seemed to unite some of the best blessings of existence and had lived nearly twenty-one years in the world with very little to distress or vex her.
+
+[let's do the same for Pride and Prejudice... but it doesn't exist!]
+$ "It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife" > pride_and_prejudice
+Cannot open file
+
+[create the file first]
+$ touch pride_and_prejudice
+$ ls
+emma pride_and_pre [note that pride_and_prejudice is truncated]
+$ "It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife" > pride_and_prejudice
+$ cat pride_and_prejudice
+It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife
+
+[oops we are missing a period at the end]
+$ "." >> pride_and_prejudice
+$ cat pride_and_prejudice
+It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife.
+
+[create another user]
+$ cd ../../
+$ pwd
+/users
+$ mkdir anna
+$ mkdir lily [lily already exists! nothing happens]
+$ ls
+lily anna
+
+[anna wants to see what lily has]
+$ ls lily
+jane_austen
+
+[anna also loves jane austen]
+$ cp -r lily anna
+$ ls anna
+emma pride_and_pre [note that pride and prejudice has been truncated!]
+$ cat anna/emma
+Cannot open file anna/emma
+$ cat anna/jane_austen/emma
+Emma Woodhouse, handsome, clever and rich, with a comfortable home and happy disposition seemed to unite some of the best blessings of existence and had lived nearly twenty-one years in the world with very little to distress or vex her.
+
+[let's go back to users]
+$ cd /users
+$ pwd
+/users
+$ ls
+lily anna
+
+[rosemary also loves jane austen]
+[she will now move anna's files into her directory]
+$ mv -r anna rosemary
+$ ls
+lily rosemary
+$ ls rosemary
+jane_austen
+$ cat rosemary/jane_austen/emma
+Emma Woodhouse, handsome, clever and rich, with a comfortable home and happy disposition seemed to unite some of the best blessings of existence and had lived nearly twenty-one years in the world with very little to distress or vex her.
+
+[copy lily's emma into rosemary under a different name]
+$ cd lily/jane_austen
+$ cp emma ../../rosemary/jane_austen/emma2
+$ ls ../../rosemary/jane_austen
+emma pride_and_pre emma2
+
+[rename lily's emma to emma_lily using mv]
+$ mv emma emma_lily
+$ cat emma_lily
+Emma Woodhouse,... her.
+$ ls
+pride_and_pre emma_lily
+
+[move emma_lily into rosemary's directory]
+$ mv emma_lily ../../rosemary
+$ ls
+pride_and_pre
+$ cd ../../rosemary
+$ ls
+jane_austen emma_lily
+$ mv emma_lily jane_austen
+$ ls jane_austen
+emma pride_and_pre emma2 emma_lily
+
+[remove emma from rosemary]
+$ rm jane_austen/emma
+$ ls jane_austen
+pride_and_pre emma2 emma_lily
+
+[remove rosemary's jane_austen folder]
+$ rm -r jane_austen
+$ ls
+[empty]
+$ cd jane_austen
+Could not change directory to jane_austen
+```
