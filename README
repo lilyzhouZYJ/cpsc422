@@ -38,7 +38,7 @@ List here the following info:
     - If `dest` is an existing file, its content will be clobbered by the content of `src`.
     - If `dest` is a non-existing file but its parent directory exists, it will be created with a copy of the contents of `src`.
 - If `src` is a directory:
-    - The recursive flag `-r` must be provided, and `dest` must be a directory.
+    - The recursive flag `-r` must be provided, and `dest` must be a directory that is not a subdirectory of `src`.
     - If `dest` does not exist but its parent directory exists, it will be created.
     - The files and subdirectories of `src` will be copied into `dest`.
 
@@ -49,7 +49,7 @@ List here the following info:
     - If `dest` is an existing file, its content will be clobbered by the content of `src`.
     - If `dest` is a non-existing file but its parent directory exists, it will be created with a copy of the contents of `src`.
 - If `src` is a directory:
-    - The recursive flag `-r` must be provided, and `dest` must be a directory.
+    - The recursive flag `-r` must be provided, and `dest` must be a directory that is not a subdirectory of `src`.
     - If `dest` does not exist but its parent directory exists, it will be created.
     - The files and subdirectories of `src` will be moved into `dest`.
 
