@@ -14,11 +14,16 @@ int main(int argc, char **argv)
     else
         printf("Failed to launch fstest.\n");
 #else
-    pid_t shell_pid;
-    if ((shell_pid = spawn(5, 1000)) != -1)
-        printf("shell in process %d.\n", shell_pid);
+    // pid_t shell_pid;
+    // if ((shell_pid = spawn(5, 1000)) != -1)
+    //     printf("shell in process %d.\n", shell_pid);
+    // else
+    //     printf("Failed to launch shell.\n");
+    pid_t ping_pid;
+    if ((ping_pid = spawn(1, 1000)) != -1)
+        printf("ping in process %d.\n", ping_pid);
     else
-        printf("Failed to launch shell.\n");
+        printf("Failed to launch ping.\n");
 #endif
 
     return 0;

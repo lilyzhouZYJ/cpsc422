@@ -73,6 +73,9 @@ void intr_local_enable(void);
 void intr_local_disable(void);
 void intr_eoi(void);
 
+// Temporarily disable interrupts
+#define NO_INTR(stmt) intr_local_disable(); stmt; intr_local_enable()
+
 #endif  /* !__ASSEMBLER */
 
 #endif  /* _KERN_ */

@@ -164,7 +164,10 @@ int flock_release(struct flock * flock, int * errno)
 
 int flock_operation(struct flock * flock, int operation, int * errno)
 {
+    KERN_DEBUG("flock_operation: operation is %d\n", operation);
+
     int non_blocking = (operation & LOCK_NB) > 0 ? 1 : 0;
+    int curid = get_curid();
 
     if((operation & LOCK_SH) == LOCK_SH){
         // Acquire shared lock
@@ -174,6 +177,12 @@ int flock_operation(struct flock * flock, int operation, int * errno)
             return -1;
         }
 
+        if(flock->lock_holder[curid] == 1){
+            // Release first
+            int ret = flock_release(flock, errno);
+            if(ret < 0) 
+                return -1;
+        }
         return flock_acquire(flock, FLOCK_SH, non_blocking, errno);
     }
     else if ((operation & LOCK_EX) == LOCK_EX){
@@ -184,6 +193,12 @@ int flock_operation(struct flock * flock, int operation, int * errno)
             return -1;
         }
 
+        if(flock->lock_holder[curid] == 1){
+            // Release first
+            int ret = flock_release(flock, errno);
+            if(ret < 0) 
+                return -1;
+        }
         return flock_acquire(flock, FLOCK_EX, non_blocking, errno);
     }
     else if ((operation & LOCK_UN) == LOCK_UN){

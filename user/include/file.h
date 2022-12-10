@@ -67,4 +67,11 @@ struct file {
 #define chdir(path)       sys_chdir((path))
 #define flock(fd, operation) sys_flock((fd), (operation))
 
+// Flock
+#define LOCK_SH 0x001  /* Shared lock */
+#define LOCK_EX 0x002  /* Exclusive lock */
+#define LOCK_UN 0x004  /* Remove existing lock */
+
+#define LOCK_NB 0x008  /* Non-blocking request */
+
 #endif  /* !_USER_FILE_H_ */
