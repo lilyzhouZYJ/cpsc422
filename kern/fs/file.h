@@ -22,6 +22,11 @@ struct file {
     int8_t writable;
     struct inode *ip;
     uint32_t off;
+
+    // flock:
+    // (1) Lock type
+    // (2) Lock holder count
+    // (3) 
 };
 
 void file_init(void);
@@ -43,6 +48,8 @@ int file_read(struct file *f, char *addr, int n);
 
 // Write to file f.
 int file_write(struct file *f, char *addr, int n);
+
+int file_flock(struct file *f);
 
 #define CONSOLE 1
 

@@ -532,3 +532,29 @@ void sys_chdir(tf_t *tf)
     tcb_set_cwd(pid, ip);
     syscall_set_errno(tf, E_SUCC);
 }
+
+void sys_flock(tf_t *tf)
+{
+    // Get input arguments
+    int fd = syscall_get_arg2(tf);
+    int operation = syscall_get_arg3(tf);
+
+    // Check valid file descriptor
+    if (!(0 <= fd && fd < NOFILE)) {
+        syscall_set_errno(tf, E_BADF);
+        syscall_set_retval1(tf, -1);
+        return;
+    }
+
+    // Get file
+    struct file * file = tcb_get_openfiles(pid)[fd];
+    if (file == NULL || file->type != FD_INODE) {
+        syscall_set_errno(tf, E_BADF);
+        syscall_set_retval1(tf, -1);
+        return;
+    }
+
+    // Lock file
+    int ret = file_flock(file);
+    
+}

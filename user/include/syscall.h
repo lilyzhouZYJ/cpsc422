@@ -209,4 +209,19 @@ static gcc_inline int sys_chdir(char *path)
     return errno ? -1 : 0;
 }
 
+static gcc_inline int sys_flock(int fd, int operation)
+{
+    int errno, ret;
+
+    asm volatile ("int %2"
+                  : "=a" (errno), "=b" (ret)
+                  : "i" (T_SYSCALL),
+                    "a" (SYS_flock),
+                    "b" (fd),
+                    "c" (operation)
+                  : "cc", "memory");
+
+    return errno ? -1 : 0;
+}
+
 #endif  /* !_USER_SYSCALL_H_ */

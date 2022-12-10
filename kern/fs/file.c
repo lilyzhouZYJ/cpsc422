@@ -153,3 +153,13 @@ int file_write(struct file *f, char *addr, int n)
     KERN_PANIC("file_write");
     return -1;
 }
+
+int file_flock(struct file *f)
+{
+    if(f->type != FD_INODE){
+        KERN_PANIC("file_flock: file type is %d, expected FD_INODE = %d\n", f->type, FD_INODE);
+        return -1;
+    }
+
+    
+}
