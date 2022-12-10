@@ -11,26 +11,26 @@ typedef struct {
     unsigned int queue[NUM_IDS];
 } CV;
 
-typedef struct {
-#define BUFFER_SIZE 3
-    unsigned int buf[BUFFER_SIZE];
-    unsigned int head;
-    unsigned int size;
-    spinlock_t lk;
-    CV empty;
-    CV full;
-} BoundedBuffer;
+// typedef struct {
+// #define BUFFER_SIZE 3
+//     unsigned int buf[BUFFER_SIZE];
+//     unsigned int head;
+//     unsigned int size;
+//     spinlock_t lk;
+//     CV empty;
+//     CV full;
+// } BoundedBuffer;
 
 void CV_init(CV *cv);
 void CV_wait(CV *cv, spinlock_t *lk);
 void CV_signal(CV *cv);
 void CV_broadcast(CV *cv);
 
-void BB_init(BoundedBuffer *bb);
-bool BB_is_empty(BoundedBuffer *bb);
-bool BB_is_full(BoundedBuffer *bb);
-void BB_enqueue(BoundedBuffer *bb, unsigned int val);
-unsigned int BB_dequeue(BoundedBuffer *bb);
+// void BB_init(BoundedBuffer *bb);
+// bool BB_is_empty(BoundedBuffer *bb);
+// bool BB_is_full(BoundedBuffer *bb);
+// void BB_enqueue(BoundedBuffer *bb, unsigned int val);
+// unsigned int BB_dequeue(BoundedBuffer *bb);
 
 #endif  /* _KERN_ */
 

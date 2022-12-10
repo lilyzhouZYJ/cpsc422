@@ -79,56 +79,56 @@ void CV_broadcast(CV *cv)
     }
 }
 
-void BB_init(BoundedBuffer *bb)
-{
-    memzero(bb->buf, BUFFER_SIZE);
-    bb->head = bb->size = 0;
-    spinlock_init(&bb->lk);
-    CV_init(&bb->empty);
-    CV_init(&bb->full);
-}
+// void BB_init(BoundedBuffer *bb)
+// {
+//     memzero(bb->buf, BUFFER_SIZE);
+//     bb->head = bb->size = 0;
+//     spinlock_init(&bb->lk);
+//     CV_init(&bb->empty);
+//     CV_init(&bb->full);
+// }
 
-bool BB_is_empty(BoundedBuffer *bb)
-{
-    return bb->size == 0;
-}
+// bool BB_is_empty(BoundedBuffer *bb)
+// {
+//     return bb->size == 0;
+// }
 
-bool BB_is_full(BoundedBuffer *bb)
-{
-    return bb->size == BUFFER_SIZE;
-}
+// bool BB_is_full(BoundedBuffer *bb)
+// {
+//     return bb->size == BUFFER_SIZE;
+// }
 
-void BB_enqueue(BoundedBuffer *bb, unsigned int val)
-{
-    unsigned int idx;
-    spinlock_acquire(&bb->lk);
+// void BB_enqueue(BoundedBuffer *bb, unsigned int val)
+// {
+//     unsigned int idx;
+//     spinlock_acquire(&bb->lk);
 
-    while (BB_is_full(bb)) {
-        CV_wait(&bb->full, &bb->lk);
-    }
+//     while (BB_is_full(bb)) {
+//         CV_wait(&bb->full, &bb->lk);
+//     }
 
-    idx = (bb->head + bb->size) % BUFFER_SIZE;
-    bb->buf[idx] = val;
-    bb->size++;
+//     idx = (bb->head + bb->size) % BUFFER_SIZE;
+//     bb->buf[idx] = val;
+//     bb->size++;
 
-    CV_signal(&bb->empty);
-    spinlock_release(&bb->lk);
-}
+//     CV_signal(&bb->empty);
+//     spinlock_release(&bb->lk);
+// }
 
-unsigned int BB_dequeue(BoundedBuffer *bb)
-{
-    unsigned int val;
-    spinlock_acquire(&bb->lk);
+// unsigned int BB_dequeue(BoundedBuffer *bb)
+// {
+//     unsigned int val;
+//     spinlock_acquire(&bb->lk);
 
-    while (BB_is_empty(bb)) {
-        CV_wait(&bb->empty, &bb->lk);
-    }
+//     while (BB_is_empty(bb)) {
+//         CV_wait(&bb->empty, &bb->lk);
+//     }
 
-    val = bb->buf[bb->head];
-    bb->head = (bb->head + 1) % BUFFER_SIZE;
-    bb->size--;
+//     val = bb->buf[bb->head];
+//     bb->head = (bb->head + 1) % BUFFER_SIZE;
+//     bb->size--;
 
-    CV_signal(&bb->full);
-    spinlock_release(&bb->lk);
-    return val;
-}
+//     CV_signal(&bb->full);
+//     spinlock_release(&bb->lk);
+//     return val;
+// }

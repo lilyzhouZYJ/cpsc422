@@ -3,6 +3,8 @@
 #include <kern/lib/types.h>
 #include <kern/lib/debug.h>
 #include <kern/lib/spinlock.h>
+#include <kern/lib/cv.h>
+#include <kern/fs/flock.h>
 #include "params.h"
 #include "stat.h"
 #include "dinode.h"
@@ -31,6 +33,7 @@ struct file *file_alloc(void)
     for (f = ftable.file; f < ftable.file + NFILE; f++) {
         if (f->ref == 0) {
             f->ref = 1;
+            flock_init(&(f->flock)); // initialize flock
             spinlock_release(&ftable.lock);
             return f;
         }

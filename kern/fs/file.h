@@ -12,6 +12,7 @@
 
 #ifdef _KERN_
 
+#include <kern/lib/flock.h>
 #include "stat.h"
 #include "inode.h"
 
@@ -24,9 +25,7 @@ struct file {
     uint32_t off;
 
     // flock:
-    // (1) Lock type
-    // (2) Lock holder count
-    // (3) 
+    struct flock flock;
 };
 
 void file_init(void);
