@@ -3,15 +3,15 @@
 
 #ifdef _KERN_
 
-#include <kern/lib/spinlock.h>
+#include <lib/spinlock.h>
 
 void thread_init(unsigned int mbi_addr);
 unsigned int thread_spawn(void *entry, unsigned int id,
                           unsigned int quota);
 void thread_yield(void);
 void sched_update(void);
-void thread_sleep(void *chan, spinlock_t *lk);
-void thread_wakeup(void *chan);
+void thread_suspend(spinlock_t *lk, unsigned int old_cur_pid);
+void thread_ready(unsigned int pid);
 
 #endif  /* _KERN_ */
 

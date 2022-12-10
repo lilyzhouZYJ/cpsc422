@@ -12,6 +12,8 @@ fstest: $(USER_OBJDIR)/fstest/fstest
 $(USER_OBJDIR)/fstest/fstest: $(USER_LIB_OBJ) $(USER_FSTEST_OBJ)
 	@echo + ld[USER/fstest] $@
 	$(V)$(LD) -o $@ $(USER_LDFLAGS) $(USER_LIB_OBJ) $(USER_FSTEST_OBJ) $(GCC_LIBS)
+	mv $@ $@.bak
+	$(V)$(OBJCOPY) --remove-section .note.gnu.property $@.bak $@
 	$(V)$(OBJDUMP) -S $@ > $@.asm
 	$(V)$(NM) -n $@ > $@.sym
 

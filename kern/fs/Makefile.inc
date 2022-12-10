@@ -10,6 +10,7 @@ KERN_SRCFILES += $(KERN_DIR)/fs/dir.c
 KERN_SRCFILES += $(KERN_DIR)/fs/path.c
 KERN_SRCFILES += $(KERN_DIR)/fs/file.c
 KERN_SRCFILES += $(KERN_DIR)/fs/sysfile.c
+KERN_SRCFILES += $(KERN_DIR)/fs/flock.c
 
 $(KERN_OBJDIR)/fs/%.o: $(KERN_DIR)/fs/%.c
 	@echo + cc[KERN/fs] $<

@@ -547,14 +547,24 @@ void sys_flock(tf_t *tf)
     }
 
     // Get file
-    struct file * file = tcb_get_openfiles(pid)[fd];
+    struct file * file = tcb_get_openfiles(get_curid())[fd];
     if (file == NULL || file->type != FD_INODE) {
         syscall_set_errno(tf, E_BADF);
         syscall_set_retval1(tf, -1);
         return;
     }
 
-    // Lock file
-    int ret = file_flock(file);
+    // Lock/unlock file
+    int errno;
+    int ret = file_flock(file, fd, operation, &errno);
+    
+    // Set up return values
+    if(ret < 0){
+        syscall_set_errno(tf, errno);
+        syscall_set_retval1(tf, -1);
+    } else {
+        syscall_set_errno(tf, E_SUCC);
+        syscall_set_retval1(tf, 0);
+    }
     
 }

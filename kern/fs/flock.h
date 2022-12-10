@@ -3,6 +3,8 @@
 
 #ifdef _KERN_
 
+#include <kern/lib/cv.h>
+
 #define LOCK_SH 0x001  /* Shared lock */
 #define LOCK_EX 0x002  /* Exclusive lock */
 #define LOCK_UN 0x004  /* Remove existing lock */
@@ -23,9 +25,10 @@ struct flock {
 
 void flock_init(struct flock * flock);
 
-int flock_acquire(struct flock * flock, int type, int non_blocking, int * errno);
+int flock_operation(struct flock * flock, int operation, int * errno);
 
-int flock_release(struct flock * flock, int * errno);
+// int flock_acquire(struct flock * flock, int type, int non_blocking, int * errno);
+// int flock_release(struct flock * flock, int * errno);
 
 #endif  /* _KERN_ */
 

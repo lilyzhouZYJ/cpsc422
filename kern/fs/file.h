@@ -12,9 +12,9 @@
 
 #ifdef _KERN_
 
-#include <kern/lib/flock.h>
 #include "stat.h"
 #include "inode.h"
+#include "flock.h"
 
 struct file {
     enum { FD_NONE, FD_PIPE, FD_INODE } type;
@@ -48,7 +48,7 @@ int file_read(struct file *f, char *addr, int n);
 // Write to file f.
 int file_write(struct file *f, char *addr, int n);
 
-int file_flock(struct file *f);
+int file_flock(struct file *f, int fd, int operation, int * errno);
 
 #define CONSOLE 1
 

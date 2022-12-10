@@ -4,13 +4,13 @@
 #include <kern/lib/debug.h>
 #include <kern/lib/spinlock.h>
 #include <kern/lib/cv.h>
-#include <kern/fs/flock.h>
 #include "params.h"
 #include "stat.h"
 #include "dinode.h"
 #include "inode.h"
 #include "file.h"
 #include "log.h"
+#include "flock.h"
 
 struct {
     spinlock_t lock;
@@ -157,12 +157,12 @@ int file_write(struct file *f, char *addr, int n)
     return -1;
 }
 
-int file_flock(struct file *f)
+int file_flock(struct file *f, int fd, int operation, int * errno)
 {
     if(f->type != FD_INODE){
         KERN_PANIC("file_flock: file type is %d, expected FD_INODE = %d\n", f->type, FD_INODE);
         return -1;
     }
 
-    
+    return flock_operation(&f->flock, operation, errno);
 }

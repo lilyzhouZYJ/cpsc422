@@ -1,4 +1,6 @@
 #include <kern/lib/spinlock.h>
+#include <kern/lib/debug.h>
+#include <kern/lib/syscall.h>
 #include <thread/PCurID/export.h>
 #include "flock.h"
 
@@ -17,7 +19,7 @@ void flock_init(struct flock * flock)
     CV_init(&(flock->cv_exclusive_flock));
 
     for(int i = 0; i < NUM_IDS; i++){
-        lock_holder[i] = 0;
+        flock->lock_holder[i] = 0;
     }
 }
 
@@ -41,7 +43,7 @@ int flock_acquire(struct flock * flock, int type, int non_blocking, int * errno)
         if(flock->type == FLOCK_EX){
             if(non_blocking == 1){
                 // Reject the request
-                *errno = EWOULDBLOCK;
+                *errno = E_WOULDBLOCK;
                 spinlock_release(&flock_lk);
                 return -1;
             } else {
@@ -86,7 +88,7 @@ int flock_acquire(struct flock * flock, int type, int non_blocking, int * errno)
         else {
             if(non_blocking == 1){
                 // Reject the request
-                *errno = EWOULDBLOCK;
+                *errno = E_WOULDBLOCK;
                 spinlock_release(&flock_lk);
                 return -1;
             } else {
@@ -105,6 +107,9 @@ int flock_acquire(struct flock * flock, int type, int non_blocking, int * errno)
             }
         }
     }
+
+    KERN_PANIC("flock_acquire: should not reach here\n");
+    return -1;
 }
 
 int flock_release(struct flock * flock, int * errno)
@@ -117,7 +122,7 @@ int flock_release(struct flock * flock, int * errno)
 
     if(flock->type == FLOCK_NONE || flock->lock_holder[curid] == 0){
         // File is not locked, or current process does not hold a lock
-        *errno = EINVAL;
+        *errno = E_INVAL;
         spinlock_release(&flock_lk);
         return -1;
     }
@@ -129,7 +134,7 @@ int flock_release(struct flock * flock, int * errno)
         flock->num_shared_locks--;
 
         if(flock->num_shared_locks == 0){
-            flock_type = FLOCK_NONE;
+            flock->type = FLOCK_NONE;
         }
     }
     // (2) Release exclusive lock
@@ -151,5 +156,49 @@ int flock_release(struct flock * flock, int * errno)
         // (2) Only waiting requests for shared locks could be satisfied
         CV_signal(&flock->cv_shared_flock);
     }
+
+    // Release spinlock
+    spinlock_release(&flock_lk);
+    return 0;
 }
 
+int flock_operation(struct flock * flock, int operation, int * errno)
+{
+    int non_blocking = (operation & LOCK_NB) > 0 ? 1 : 0;
+
+    if((operation & LOCK_SH) == LOCK_SH){
+        // Acquire shared lock
+        if((operation & (LOCK_EX | LOCK_UN)) > 0){
+            // Invalid operation
+            *errno = E_INVAL;
+            return -1;
+        }
+
+        return flock_acquire(flock, FLOCK_SH, non_blocking, errno);
+    }
+    else if ((operation & LOCK_EX) == LOCK_EX){
+        // Acquire exclusive lock
+        if((operation & (LOCK_SH | LOCK_UN)) > 0){
+            // Invalid operation
+            *errno = E_INVAL;
+            return -1;
+        }
+
+        return flock_acquire(flock, FLOCK_EX, non_blocking, errno);
+    }
+    else if ((operation & LOCK_UN) == LOCK_UN){
+        // Release lock
+        if((operation & (LOCK_SH | LOCK_EX)) > 0){
+            // Invalid operation
+            *errno = E_INVAL;
+            return -1;
+        }
+
+        return flock_release(flock, errno);
+    }
+    else {
+        // Invalid operation
+        *errno = E_INVAL;
+        return -1;
+    }
+}
