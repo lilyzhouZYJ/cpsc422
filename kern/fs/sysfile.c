@@ -539,7 +539,7 @@ void sys_flock(tf_t *tf)
     int fd = syscall_get_arg2(tf);
     int operation = syscall_get_arg3(tf);
 
-    KERN_DEBUG("sys_flock: fd is %d, operation is %d\n", fd, operation);
+    // KERN_DEBUG("sys_flock: fd is %d, operation is %d\n", fd, operation);
 
     // Check valid file descriptor
     if (!(0 <= fd && fd < NOFILE)) {
@@ -557,7 +557,7 @@ void sys_flock(tf_t *tf)
     }
 
     // Lock/unlock file
-    KERN_DEBUG("sys_flock: fd is %d, operation is %d\n", fd, operation);
+    // KERN_DEBUG("sys_flock: fd is %d, operation is %d\n", fd, operation);
     int errno;
     int ret = file_flock(file, fd, operation, &errno);
     

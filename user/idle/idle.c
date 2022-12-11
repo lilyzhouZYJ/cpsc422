@@ -19,11 +19,11 @@ int main(int argc, char **argv)
     //     printf("shell in process %d.\n", shell_pid);
     // else
     //     printf("Failed to launch shell.\n");
-    pid_t ping_pid;
-    if ((ping_pid = spawn(1, 1000)) != -1)
-        printf("ping in process %d.\n", ping_pid);
+    pid_t flock_pid;
+    if ((flock_pid = spawn(6, 1000)) != -1)
+        printf("flocktest in process %d.\n", flock_pid);
     else
-        printf("Failed to launch ping.\n");
+        printf("Failed to launch flocktest.\n");
 #endif
 
     return 0;

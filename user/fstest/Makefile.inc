@@ -7,11 +7,25 @@ USER_FSTEST_OBJ	:= $(patsubst %.c, $(OBJDIR)/%.o, $(USER_FSTEST_SRC))
 USER_FSTEST_OBJ	:= $(patsubst %.S, $(OBJDIR)/%.o, $(USER_FSTEST_OBJ))
 KERN_BINFILES	+= $(USER_OBJDIR)/fstest/fstest
 
-fstest: $(USER_OBJDIR)/fstest/fstest
+USER_FLOCKTEST_SRC	+= $(USER_DIR)/fstest/flocktest.c
+USER_FLOCKTEST_OBJ	:= $(patsubst %.c, $(OBJDIR)/%.o, $(USER_FLOCKTEST_SRC))
+USER_FLOCKTEST_OBJ	:= $(patsubst %.S, $(OBJDIR)/%.o, $(USER_FLOCKTEST_OBJ))
+KERN_BINFILES	+= $(USER_OBJDIR)/fstest/flocktest
+
+fstest: $(USER_OBJDIR)/fstest/fstest    \
+        $(USER_OBJDIR)/fstest/flocktest \
 
 $(USER_OBJDIR)/fstest/fstest: $(USER_LIB_OBJ) $(USER_FSTEST_OBJ)
 	@echo + ld[USER/fstest] $@
 	$(V)$(LD) -o $@ $(USER_LDFLAGS) $(USER_LIB_OBJ) $(USER_FSTEST_OBJ) $(GCC_LIBS)
+	mv $@ $@.bak
+	$(V)$(OBJCOPY) --remove-section .note.gnu.property $@.bak $@
+	$(V)$(OBJDUMP) -S $@ > $@.asm
+	$(V)$(NM) -n $@ > $@.sym
+
+$(USER_OBJDIR)/fstest/flocktest: $(USER_LIB_OBJ) $(USER_FLOCKTEST_OBJ)
+	@echo + ld[USER/flocktest] $@
+	$(V)$(LD) -o $@ $(USER_LDFLAGS) $(USER_LIB_OBJ) $(USER_FLOCKTEST_OBJ) $(GCC_LIBS)
 	mv $@ $@.bak
 	$(V)$(OBJCOPY) --remove-section .note.gnu.property $@.bak $@
 	$(V)$(OBJDUMP) -S $@ > $@.asm

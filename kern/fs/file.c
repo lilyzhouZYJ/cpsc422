@@ -159,7 +159,7 @@ int file_write(struct file *f, char *addr, int n)
 
 int file_flock(struct file *f, int fd, int operation, int * errno)
 {
-    KERN_DEBUG("file_flock: fd is %d, operation is %d\n", fd, operation);
+    // KERN_DEBUG("file_flock: fd is %d, operation is %d\n", fd, operation);
 
     if(f->type != FD_INODE){
         KERN_PANIC("file_flock: file type is %d, expected FD_INODE = %d\n", f->type, FD_INODE);
