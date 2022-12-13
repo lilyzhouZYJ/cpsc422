@@ -33,7 +33,7 @@ struct file *file_alloc(void)
     for (f = ftable.file; f < ftable.file + NFILE; f++) {
         if (f->ref == 0) {
             f->ref = 1;
-            flock_init(&(f->flock)); // initialize flock
+            f->hold_flock = 0; // initialize flock info
             spinlock_release(&ftable.lock);
             return f;
         }
@@ -157,14 +157,12 @@ int file_write(struct file *f, char *addr, int n)
     return -1;
 }
 
-int file_flock(struct file *f, int fd, int operation, int * errno)
+int file_flock(struct file *f, int operation, int * errno)
 {
-    // KERN_DEBUG("file_flock: fd is %d, operation is %d\n", fd, operation);
-
     if(f->type != FD_INODE){
         KERN_PANIC("file_flock: file type is %d, expected FD_INODE = %d\n", f->type, FD_INODE);
         return -1;
     }
 
-    return flock_operation(&f->flock, operation, errno);
+    return flock_operation(f, operation, errno);
 }

@@ -68,6 +68,7 @@
 #include "params.h"
 #include "stat.h"
 #include "dinode.h"
+#include "flock.h"
 
 // In-memory copy of an inode
 struct inode {
@@ -82,6 +83,9 @@ struct inode {
     int16_t nlink;
     uint32_t size;
     uint32_t addrs[NDIRECT + 1];
+
+    // flock
+    struct flock flock;
 };
 
 // Table mapping major device number to device functions

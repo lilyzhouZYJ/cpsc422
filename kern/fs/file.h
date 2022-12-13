@@ -16,6 +16,8 @@
 #include "inode.h"
 #include "flock.h"
 
+struct flock;
+
 struct file {
     enum { FD_NONE, FD_PIPE, FD_INODE } type;
     int ref;  // reference count
@@ -25,7 +27,7 @@ struct file {
     uint32_t off;
 
     // flock:
-    struct flock flock;
+    int hold_flock;
 };
 
 void file_init(void);
@@ -48,7 +50,7 @@ int file_read(struct file *f, char *addr, int n);
 // Write to file f.
 int file_write(struct file *f, char *addr, int n);
 
-int file_flock(struct file *f, int fd, int operation, int * errno);
+int file_flock(struct file *f, int operation, int * errno);
 
 #define CONSOLE 1
 

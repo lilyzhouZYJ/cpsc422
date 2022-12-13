@@ -3,6 +3,7 @@
 #include <kern/lib/syscall.h>
 #include <thread/PCurID/export.h>
 #include "flock.h"
+#include "file.h"
 
 // Spinlock
 spinlock_t flock_lk;
@@ -17,22 +18,20 @@ void flock_init(struct flock * flock)
 
     CV_init(&(flock->cv_shared_flock));
     CV_init(&(flock->cv_exclusive_flock));
-
-    for(int i = 0; i < NUM_IDS; i++){
-        flock->lock_holder[i] = 0;
-    }
 }
 
-int flock_acquire(struct flock * flock, int type, int non_blocking, int * errno)
+int flock_acquire(struct file * f, int type, int non_blocking, int * errno)
 {
     // Acquire spinlock
     spinlock_acquire(&flock_lk);
 
     // Get pid of current process
     int curid = get_curid();
-    KERN_ASSERT(flock->lock_holder[curid] == 0);
 
-    KERN_DEBUG("flock_acquire: curid %d, type %d, non_blocking %d\n", curid, type, non_blocking);
+    struct flock * flock = &(f->ip->flock);
+    KERN_ASSERT(f->hold_flock == 0);
+
+    KERN_DEBUG("=== flock_acquire: curid %d, type %d, non_blocking %d ===\n", curid, type, non_blocking);
 
     // Sanity check
     if(type != FLOCK_SH && type != FLOCK_EX){
@@ -62,7 +61,7 @@ int flock_acquire(struct flock * flock, int type, int non_blocking, int * errno)
                 // Acquire the lock
                 flock->type = FLOCK_SH;
                 flock->num_shared_locks++;
-                flock->lock_holder[curid] = 1;
+                f->hold_flock = 1;
                 spinlock_release(&flock_lk);
                 return 0;
             }
@@ -73,7 +72,7 @@ int flock_acquire(struct flock * flock, int type, int non_blocking, int * errno)
             KERN_DEBUG("flock_acquire: curid %d will acquire shared lock\n", curid);
             flock->type = FLOCK_SH;
             flock->num_shared_locks++;
-            flock->lock_holder[curid] = 1;
+            f->hold_flock = 1;
             spinlock_release(&flock_lk);
             return 0;
         }
@@ -87,7 +86,7 @@ int flock_acquire(struct flock * flock, int type, int non_blocking, int * errno)
             // Acquire the lock
             KERN_DEBUG("flock_acquire: curid %d will acquire exclusive lock\n", curid);
             flock->type = FLOCK_EX;
-            flock->lock_holder[curid] = 1;
+            f->hold_flock = 1;
             spinlock_release(&flock_lk);
             return 0;
         }
@@ -111,7 +110,7 @@ int flock_acquire(struct flock * flock, int type, int non_blocking, int * errno)
 
                 // Acquire the lock
                 flock->type = FLOCK_EX;
-                flock->lock_holder[curid] = 1;
+                f->hold_flock = 1;
                 spinlock_release(&flock_lk);
                 return 0;
             }
@@ -122,19 +121,21 @@ int flock_acquire(struct flock * flock, int type, int non_blocking, int * errno)
     return -1;
 }
 
-int flock_release(struct flock * flock, int * errno)
+int flock_release(struct file * f, int * errno)
 {
     // Acquire spinlock
     spinlock_acquire(&flock_lk);
 
     // Get pid of current process
     int curid = get_curid();
-    KERN_DEBUG("flock_release: curid %d is releasing lock\n", curid);
+    KERN_DEBUG("=== flock_release: curid %d ===\n", curid);
 
-    if(flock->type == FLOCK_NONE || flock->lock_holder[curid] == 0){
-        // File is not locked, or current process does not hold a lock
+    struct flock * flock = &(f->ip->flock);
+
+    if(flock->type == FLOCK_NONE || f->hold_flock == 0){
+        // File is not locked, or current file object does not hold a lock
         *errno = E_INVAL;
-        KERN_DEBUG("flock_release: error, flock->type is %d, flock->holder[curid] is %d\n", flock->type, flock->lock_holder[curid]);
+        KERN_DEBUG("flock_release: error, flock->type is %d, f->hold_flock is %d\n", flock->type, f->hold_flock);
         spinlock_release(&flock_lk);
         return -1;
     }
@@ -158,9 +159,9 @@ int flock_release(struct flock * flock, int * errno)
     }
 
     KERN_ASSERT(flock->type != FLOCK_EX);
-
-    // Remove current process as a lock holder
-    flock->lock_holder[curid] = 0;
+    
+    // Set current struct file object to be no longer holding a flock
+    f->hold_flock = 0;
 
     // Determine what waiting requests could be granted now
     if(flock->type == FLOCK_NONE){
@@ -177,12 +178,12 @@ int flock_release(struct flock * flock, int * errno)
     return 0;
 }
 
-int flock_operation(struct flock * flock, int operation, int * errno)
+int flock_operation(struct file * f, int operation, int * errno)
 {
     int non_blocking = (operation & LOCK_NB) > 0 ? 1 : 0;
     int curid = get_curid();
 
-    KERN_DEBUG("flock_operation: curid %d, operation %d\n", curid, operation);
+    KERN_DEBUG("=== flock_operation: curid %d, operation %d ===\n", curid, operation);
 
     if((operation & LOCK_SH) == LOCK_SH){
         // Acquire shared lock
@@ -192,13 +193,15 @@ int flock_operation(struct flock * flock, int operation, int * errno)
             return -1;
         }
 
-        if(flock->lock_holder[curid] == 1){
-            // Release first
-            int ret = flock_release(flock, errno);
-            if(ret < 0) 
+        if(f->hold_flock == 1){
+            // The file struct object is holding the flock;
+            // need to release first
+            int ret = flock_release(f, errno);
+            if(ret < 0){
                 return -1;
+            }
         }
-        return flock_acquire(flock, FLOCK_SH, non_blocking, errno);
+        return flock_acquire(f, FLOCK_SH, non_blocking, errno);
     }
     else if ((operation & LOCK_EX) == LOCK_EX){
         // Acquire exclusive lock
@@ -208,13 +211,15 @@ int flock_operation(struct flock * flock, int operation, int * errno)
             return -1;
         }
 
-        if(flock->lock_holder[curid] == 1){
-            // Release first
-            int ret = flock_release(flock, errno);
-            if(ret < 0) 
+        if(f->hold_flock == 1){
+            // The file struct object is holding the flock;
+            // need to release first
+            int ret = flock_release(f, errno);
+            if(ret < 0){
                 return -1;
+            }
         }
-        return flock_acquire(flock, FLOCK_EX, non_blocking, errno);
+        return flock_acquire(f, FLOCK_EX, non_blocking, errno);
     }
     else if ((operation & LOCK_UN) == LOCK_UN){
         // Release lock
@@ -224,7 +229,7 @@ int flock_operation(struct flock * flock, int operation, int * errno)
             return -1;
         }
 
-        return flock_release(flock, errno);
+        return flock_release(f, errno);
     }
     else {
         // Invalid operation

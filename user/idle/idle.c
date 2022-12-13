@@ -19,8 +19,9 @@ int main(int argc, char **argv)
     //     printf("shell in process %d.\n", shell_pid);
     // else
     //     printf("Failed to launch shell.\n");
+    
     pid_t flock_pid;
-    if ((flock_pid = spawn(6, 1000)) != -1)
+    if ((flock_pid = spawn(6, 2000)) != -1)
         printf("flocktest in process %d.\n", flock_pid);
     else
         printf("Failed to launch flocktest.\n");

@@ -11,6 +11,7 @@
 #include "log.h"
 #include "block.h"
 #include "inode.h"
+#include "flock.h"
 
 struct devsw *devsw;
 
@@ -109,6 +110,7 @@ struct inode *inode_get(uint32_t dev, uint32_t inum)
     ip->inum = inum;
     ip->ref = 1;
     ip->flags = 0;
+    flock_init(&ip->flock); // initiali flock
     spinlock_release(&inode_cache.lock);
 
     return ip;

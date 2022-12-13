@@ -19,13 +19,15 @@ struct flock {
     CV cv_shared_flock;    // waiting to acquire a shared lock
     CV cv_exclusive_flock; // waiting to acquire an exclusive lock
 
-    // lock_holder[pid] = 1 if process #pid holds a lock on this flock
-    int lock_holder[NUM_IDS];
+    // flock:
+    int hold_flock; // whether the struct file object is holding the flock
 };
+
+struct file;
 
 void flock_init(struct flock * flock);
 
-int flock_operation(struct flock * flock, int operation, int * errno);
+int flock_operation(struct file * f, int operation, int * errno);
 
 // int flock_acquire(struct flock * flock, int type, int non_blocking, int * errno);
 // int flock_release(struct flock * flock, int * errno);

@@ -559,7 +559,7 @@ void sys_flock(tf_t *tf)
     // Lock/unlock file
     // KERN_DEBUG("sys_flock: fd is %d, operation is %d\n", fd, operation);
     int errno;
-    int ret = file_flock(file, fd, operation, &errno);
+    int ret = file_flock(file, operation, &errno);
     
     // Set up return values
     if(ret < 0){

@@ -90,6 +90,8 @@ extern uint8_t _binary___obj_user_pingpong_ding_start[];
 extern uint8_t _binary___obj_user_fstest_fstest_start[];
 extern uint8_t _binary___obj_user_shell_shell_start[];
 extern uint8_t _binary___obj_user_fstest_flocktest_start[];
+extern uint8_t _binary___obj_user_fstest_flock1_start[];
+extern uint8_t _binary___obj_user_fstest_flock2_start[];
 
 /**
  * Spawns a new child process.
@@ -153,6 +155,12 @@ void sys_spawn(tf_t *tf)
         break;
     case 6:
         elf_addr = _binary___obj_user_fstest_flocktest_start;
+        break;
+    case 7:
+        elf_addr = _binary___obj_user_fstest_flock1_start;
+        break;
+    case 8:
+        elf_addr = _binary___obj_user_fstest_flock2_start;
         break;
     default:
         syscall_set_errno(tf, E_INVAL_PID);
