@@ -7,6 +7,7 @@
 
 #define PT_PERM_UP  0
 #define PT_PERM_PTU (PTE_P | PTE_W | PTE_U)
+#define PT_PERM_COW (PTE_P | PTE_COW | PTE_U)
 
 #define ADDR_MASK(x) ((unsigned int) x & 0xfffff000)
 
@@ -111,4 +112,44 @@ void rmv_ptbl_entry(unsigned int proc_index, unsigned int pde_index,
 {
     unsigned int *pt = (unsigned int *) ADDR_MASK(PDirPool[proc_index][pde_index]);
     pt[pte_index] = 0;
+}
+
+// Copy PTE entry assuming page directory exists.
+// If original PTE entry is not zero, set PTE_COW permissions.
+// Otherwise, delete new entry as well.
+void copy_ptbl_entry(unsigned int from, unsigned int to, unsigned int pde_index,
+                     unsigned int pte_index)
+{
+    unsigned int pi;
+    unsigned int from_pte = get_ptbl_entry(from, pde_index, pte_index);
+
+    if (from_pte != 0) {
+        pi = from_pte >> 12;
+        set_ptbl_entry(to, pde_index, pte_index, pi, PT_PERM_COW);
+        set_ptbl_entry(from, pde_index, pte_index, pi, PT_PERM_COW);
+    } else {
+        rmv_ptbl_entry(to, pde_index, pte_index);
+    }
+}
+
+// Copy page table corresponding to pde_index.
+// If it doesn't exist in 'from', remove entry in 'to' also.
+void copy_pdir_entry(unsigned int from, unsigned int to, unsigned int pde_index)
+{
+    unsigned int pte, pi;
+    unsigned int from_pde = (unsigned int) PDirPool[from][pde_index];
+    unsigned int to_pde = (unsigned int) PDirPool[to][pde_index];
+    unsigned int from_pi = from_pde >> 12;
+    unsigned int to_pi = to_pde >> 12;
+
+    if (from_pde == 0) {
+        rmv_pdir_entry(to, pde_index);
+    } else {
+        pi = container_alloc(to);
+        set_pdir_entry(to, pde_index, pi);
+
+        for (pte = 0; pte < 1024; pte++) {
+            copy_ptbl_entry(from, to, pde_index, pte);
+        }
+    }
 }

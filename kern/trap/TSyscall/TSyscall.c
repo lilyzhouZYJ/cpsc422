@@ -89,6 +89,7 @@ extern uint8_t _binary___obj_user_pingpong_pong_start[];
 extern uint8_t _binary___obj_user_pingpong_ding_start[];
 extern uint8_t _binary___obj_user_fstest_fstest_start[];
 extern uint8_t _binary___obj_user_shell_shell_start[];
+extern uint8_t _binary___obj_user_fork_test_fork_test_start[];
 extern uint8_t _binary___obj_user_fstest_flocktest_start[];
 extern uint8_t _binary___obj_user_fstest_flock1_start[];
 extern uint8_t _binary___obj_user_fstest_flock2_start[];
@@ -154,12 +155,15 @@ void sys_spawn(tf_t *tf)
         elf_addr = _binary___obj_user_shell_shell_start;
         break;
     case 6:
-        elf_addr = _binary___obj_user_fstest_flocktest_start;
+        elf_addr = _binary___obj_user_fork_test_fork_test_start;
         break;
     case 7:
-        elf_addr = _binary___obj_user_fstest_flock1_start;
+        elf_addr = _binary___obj_user_fstest_flocktest_start;
         break;
     case 8:
+        elf_addr = _binary___obj_user_fstest_flock1_start;
+        break;
+    case 9:
         elf_addr = _binary___obj_user_fstest_flock2_start;
         break;
     default:
@@ -189,4 +193,15 @@ void sys_yield(tf_t *tf)
 {
     thread_yield();
     syscall_set_errno(tf, E_SUCC);
+}
+
+void sys_fork(tf_t *tf)
+{
+    unsigned int child = proc_fork();
+    if (child != NUM_IDS) {
+        syscall_set_errno(tf, E_SUCC);
+    } else {
+        syscall_set_errno(tf, E_INVAL_PID);
+    }
+    syscall_set_retval1(tf, child);
 }

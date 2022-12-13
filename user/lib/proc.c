@@ -11,3 +11,8 @@ void yield(void)
 {
     sys_yield();
 }
+
+int fork(void)
+{
+    return sys_fork();
+}

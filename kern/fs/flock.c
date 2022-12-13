@@ -31,7 +31,7 @@ int flock_acquire(struct file * f, int type, int non_blocking, int * errno)
     struct flock * flock = &(f->ip->flock);
     KERN_ASSERT(f->hold_flock == 0);
 
-    KERN_DEBUG("=== flock_acquire: curid %d, type %d, non_blocking %d ===\n", curid, type, non_blocking);
+    // KERN_DEBUG("=== flock_acquire: curid %d, type %d, non_blocking %d ===\n", curid, type, non_blocking);
 
     // Sanity check
     if(type != FLOCK_SH && type != FLOCK_EX){
@@ -44,18 +44,18 @@ int flock_acquire(struct file * f, int type, int non_blocking, int * errno)
         if(flock->type == FLOCK_EX){
             if(non_blocking == 1){
                 // Reject the request
-                KERN_DEBUG("flock_acquire: curid %d cannot acquire shared lock and will quit\n", curid);
+                KERN_DEBUG("flock_acquire: curid %d tried to acquire shared lock, failed, will quit\n", curid);
                 *errno = E_WOULDBLOCK;
                 spinlock_release(&flock_lk);
                 return -1;
             } else {
                 // Put the process on waiting list
-                KERN_DEBUG("flock_acquire: curid %d fail to acquire shared lock, will put to sleep\n", curid);
                 while(flock->type == FLOCK_EX){
+                    KERN_DEBUG("flock_acquire: curid %d tried to acquire shared lock, failed, will be suspended\n", curid);
                     CV_wait(&flock->cv_shared_flock, &flock_lk);
                 }
                 
-                KERN_DEBUG("flock_acquire: curid %d is woken up and will acquire shared lock\n", curid);
+                KERN_DEBUG("flock_acquire: curid %d is woken up and acquires shared lock\n", curid);
                 KERN_ASSERT(flock->type != FLOCK_EX);
 
                 // Acquire the lock
@@ -69,7 +69,7 @@ int flock_acquire(struct file * f, int type, int non_blocking, int * errno)
         // (b) If current lock is shared / none
         else {
             // Acquire the lock
-            KERN_DEBUG("flock_acquire: curid %d will acquire shared lock\n", curid);
+            KERN_DEBUG("flock_acquire: curid %d acquires shared lock\n", curid);
             flock->type = FLOCK_SH;
             flock->num_shared_locks++;
             f->hold_flock = 1;
@@ -84,7 +84,7 @@ int flock_acquire(struct file * f, int type, int non_blocking, int * errno)
             KERN_ASSERT(flock->num_shared_locks == 0);
 
             // Acquire the lock
-            KERN_DEBUG("flock_acquire: curid %d will acquire exclusive lock\n", curid);
+            KERN_DEBUG("flock_acquire: curid %d acquires exclusive lock\n", curid);
             flock->type = FLOCK_EX;
             f->hold_flock = 1;
             spinlock_release(&flock_lk);
@@ -94,19 +94,19 @@ int flock_acquire(struct file * f, int type, int non_blocking, int * errno)
         else {
             if(non_blocking == 1){
                 // Reject the request
-                KERN_DEBUG("flock_acquire: curid %d cannot acquire exclusive lock and will quit\n", curid);
+                KERN_DEBUG("flock_acquire: curid %d tried to acquire exclusive lock, failed, will quit\n", curid);
                 *errno = E_WOULDBLOCK;
                 spinlock_release(&flock_lk);
                 return -1;
             } else {
                 // Put the process on waiting list
-                KERN_DEBUG("flock_acquire: curid %d cannot acquire exclusive lock and will be put to sleep\n", curid);
                 while(flock->type != FLOCK_NONE){
+                    KERN_DEBUG("flock_acquire: curid %d tried to acquire exclusive lock, failed, will be suspended\n", curid);
                     CV_wait(&flock->cv_exclusive_flock, &flock_lk);
                 }
 
                 KERN_ASSERT(flock->type == FLOCK_NONE && flock->num_shared_locks == 0);
-                KERN_DEBUG("flock_acquire: curid %d is woken up and will acquire exclusive lock\n", curid);
+                KERN_DEBUG("flock_acquire: curid %d is woken up and acquires exclusive lock\n", curid);
 
                 // Acquire the lock
                 flock->type = FLOCK_EX;
@@ -128,7 +128,7 @@ int flock_release(struct file * f, int * errno)
 
     // Get pid of current process
     int curid = get_curid();
-    KERN_DEBUG("=== flock_release: curid %d ===\n", curid);
+    // KERN_DEBUG("=== flock_release: curid %d ===\n", curid);
 
     struct flock * flock = &(f->ip->flock);
 
@@ -143,7 +143,7 @@ int flock_release(struct file * f, int * errno)
     // (1) Release shared lock
     if(flock->type == FLOCK_SH){
         KERN_ASSERT(flock->num_shared_locks > 0);
-        KERN_DEBUG("flock_release: curid %d is releasing shared lock\n", curid);
+        KERN_DEBUG("flock_release: curid %d releases shared lock\n", curid);
 
         flock->num_shared_locks--;
 
@@ -166,10 +166,12 @@ int flock_release(struct file * f, int * errno)
     // Determine what waiting requests could be granted now
     if(flock->type == FLOCK_NONE){
         // (1)Any waiting requests could be satisfied
+        KERN_DEBUG("flock_release: any request could be granted due to release\n");
         CV_signal(&flock->cv_shared_flock);
         CV_signal(&flock->cv_exclusive_flock);
     } else if (flock->type == FLOCK_SH){
         // (2) Only waiting requests for shared locks could be satisfied
+        KERN_DEBUG("flock_release: shared-flock request could be granted due to release\n");
         CV_signal(&flock->cv_shared_flock);
     }
 
@@ -181,9 +183,9 @@ int flock_release(struct file * f, int * errno)
 int flock_operation(struct file * f, int operation, int * errno)
 {
     int non_blocking = (operation & LOCK_NB) > 0 ? 1 : 0;
-    int curid = get_curid();
-
-    KERN_DEBUG("=== flock_operation: curid %d, operation %d ===\n", curid, operation);
+    
+    // int curid = get_curid();
+    // KERN_DEBUG("=== flock_operation: curid %d, operation %d ===\n", curid, operation);
 
     if((operation & LOCK_SH) == LOCK_SH){
         // Acquire shared lock

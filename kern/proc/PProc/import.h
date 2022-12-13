@@ -7,6 +7,7 @@ unsigned int get_curid(void);
 void set_pdir_base(unsigned int index);
 unsigned int thread_spawn(void *entry, unsigned int id,
                           unsigned int quota);
+unsigned int thread_fork(void *entry, unsigned int id);
 
 #endif  /* _KERN_ */
 

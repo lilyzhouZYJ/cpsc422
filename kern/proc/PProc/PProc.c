@@ -4,6 +4,7 @@
 #include <lib/seg.h>
 #include <lib/trap.h>
 #include <lib/x86.h>
+#include <lib/string.h>
 #include <pcpu/PCPUIntro/export.h>
 
 #include "import.h"
@@ -52,6 +53,23 @@ unsigned int proc_create(void *elf_addr, unsigned int quota)
         uctx_pool[pid].eip = elf_entry(elf_addr);
 
         seg_init_proc(get_pcpu_idx(), pid);
+    }
+
+    return pid;
+}
+
+unsigned int proc_fork()
+{
+    unsigned int pid, id;
+
+    id = get_curid();
+    pid = thread_fork((void *) proc_start_user, id);
+
+    if (pid != NUM_IDS) {
+        // Copy user context and set child return value
+        memcpy(&uctx_pool[pid], &uctx_pool[id], sizeof(struct tf_t));
+        seg_init_proc(get_pcpu_idx(), pid);
+        uctx_pool[pid].regs.ebx = 0;
     }
 
     return pid;

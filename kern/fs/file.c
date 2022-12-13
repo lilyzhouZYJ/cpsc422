@@ -65,6 +65,15 @@ void file_close(struct file *f)
     spinlock_acquire(&ftable.lock);
     if (f->ref < 1)
         KERN_PANIC("file_close");
+
+    // Release flock
+    if(f->hold_flock == 1){
+        int errno;
+        if(file_flock(f, LOCK_UN, &errno) < 0){
+            KERN_PANIC("file_close: error in releasing flock\n");
+        }
+    }
+
     if (--f->ref > 0) {
         spinlock_release(&ftable.lock);
         return;

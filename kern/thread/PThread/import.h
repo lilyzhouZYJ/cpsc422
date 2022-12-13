@@ -17,6 +17,10 @@ void set_curid(unsigned int curid);
 
 void tcb_set_cpu(unsigned int pid, unsigned int cpu);
 
+void map_cow(unsigned int from, unsigned int to);
+unsigned int container_get_quota(unsigned int id);
+unsigned int container_get_usage(unsigned int id);
+
 #endif  /* _KERN_ */
 
 #endif  /* !_KERN_THREAD_PTHREAD_H_ */

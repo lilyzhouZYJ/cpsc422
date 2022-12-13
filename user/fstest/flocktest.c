@@ -129,16 +129,54 @@ void test_release_lock()
     }
 }
 
+void test_close_file()
+{
+    int fd1 = open("close_file", O_CREATE);
+    int fd2 = open("close_file", O_RDWR);
+
+    // (1) fd1 acquire shared lock => expect success
+    if(flock(fd1, LOCK_SH) < 0){
+        printf("fd1 cannot acquire shared lock\n");
+    } else {
+        printf("fd1 now holds shared lock\n");
+    }
+
+    // (2) fd2 acquire shared lock => expect success
+    if(flock(fd2, LOCK_SH) < 0){
+        printf("fd2 cannot acquire shared lock\n");
+    } else {
+        printf("fd2 now holds shared lock\n");
+    }
+
+    // (3) fd2 try to convert to exclusive lock => expect failure
+    if(flock(fd2, LOCK_EX | LOCK_NB) < 0){
+        printf("fd2 cannot convert to exclusive lock\n");
+    } else {
+        printf("fd2 has been converted to exclusive lock\n");
+    }
+
+    // (3) Close fd1
+    printf("closing fd1\n");
+    close(fd1);
+
+    // (4) fd2 convert to exclusive lock => expect success
+    if(flock(fd2, LOCK_EX) < 0){
+        printf("fd2 cannot convert to exclusive lock\n");
+    } else {
+        printf("fd2 has been converted to exclusive lock\n");
+    }
+}
+
 void test_multithread()
 {
     pid_t flock1_pid;
-    if ((flock1_pid = spawn(7, 500)) != -1)
+    if ((flock1_pid = spawn(8, 500)) != -1)
         printf("flock1 in process %d.\n", flock1_pid);
     else
         printf("Failed to launch flock1.\n");
 
     pid_t flock2_pid;
-    if ((flock2_pid = spawn(8, 500)) != -1)
+    if ((flock2_pid = spawn(9, 500)) != -1)
         printf("flock2 in process %d.\n", flock2_pid);
     else
         printf("Failed to launch flock2.\n");
@@ -160,11 +198,12 @@ int main(int argc, char **argv)
     test_release_lock();
     printf("======== test_release_lock ends ========\n\n");
 
+    printf("======== test_close_file ========\n");
+    test_close_file();
+    printf("======== test_close_file ends ========\n\n");
+
     printf("======== test_multithread ========\n");
     test_multithread();
-    // printf("======== test_multithread ends ========\n\n");
-
-    printf("flocktest terminated\n");
 
     return 0;
 }

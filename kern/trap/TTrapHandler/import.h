@@ -9,6 +9,7 @@ unsigned int alloc_page(unsigned int proc_index, unsigned int vaddr,
 unsigned int syscall_get_arg1(void);
 void set_pdir_base(unsigned int index);
 void proc_start_user(void);
+void map_decow(unsigned int pid, unsigned int vaddr);
 
 #endif  /* _KERN_ */
 

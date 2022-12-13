@@ -47,6 +47,19 @@ unsigned int thread_spawn(void *entry, unsigned int id, unsigned int quota)
     return pid;
 }
 
+unsigned int thread_fork(void *entry, unsigned int id)
+{
+    unsigned int quota = (container_get_quota(id) - container_get_usage(id)) / 2;
+    unsigned int pid = kctx_new(entry, id, quota);
+    if (pid != NUM_IDS) {
+        map_cow(id, pid);
+        tcb_set_state(pid, TSTATE_READY);
+        tqueue_enqueue(NUM_IDS, pid);
+    }
+
+    return pid;
+}
+
 /**
  * Yield to the next thread in the ready queue.
  * You should set the currently running thread state as ready,

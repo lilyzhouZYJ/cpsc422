@@ -35,6 +35,7 @@ enum __syscall_nr {
     SYS_readline,
     SYS_spawn,      /* create a new process */
     SYS_yield,      /* yield to another process */
+    SYS_fork,
     SYS_open,
     SYS_close,
     SYS_read,

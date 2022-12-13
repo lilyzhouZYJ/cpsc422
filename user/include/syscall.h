@@ -59,6 +59,20 @@ static gcc_inline void sys_yield(void)
                   : "cc", "memory");
 }
 
+static gcc_inline pid_t sys_fork(void)
+{
+    int errno;
+    pid_t pid;
+
+    asm volatile ("int %2"
+                  : "=a" (errno), "=b" (pid)
+                  : "i" (T_SYSCALL),
+                    "a" (SYS_fork)
+                  : "cc", "memory");
+
+    return pid;
+}
+
 static gcc_inline int sys_read(int fd, char *buf, size_t n)
 {
     int errno;

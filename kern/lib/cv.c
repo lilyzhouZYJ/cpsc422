@@ -52,6 +52,7 @@ void CV_wait(CV *cv, spinlock_t *lk)
     CV_enqueue(cv, old_cur_pid);
 
     NO_INTR(
+        KERN_DEBUG("CV_wait: pid %d will be suspended\n", old_cur_pid);
         thread_suspend(lk, old_cur_pid)
     );
 
@@ -63,6 +64,7 @@ void CV_signal(CV *cv)
     unsigned int pid = CV_dequeue(cv);
     if (pid != 0) {
         NO_INTR(
+            KERN_DEBUG("CV_signal: pid %d will be moved to ready queue\n", pid);
             thread_ready(pid)
         );
     }

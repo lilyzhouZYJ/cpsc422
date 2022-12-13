@@ -56,10 +56,23 @@ void pgflt_handler(tf_t *tf)
     unsigned int cur_pid;
     unsigned int errno;
     unsigned int fault_va;
+    unsigned int pte_entry;
 
     cur_pid = get_curid();
     errno = tf->err;
     fault_va = rcr2();
+
+    if ((errno & 0x3) == 0x3) {
+        // error for writing to a read-only page
+        pte_entry = get_ptbl_entry_by_va(cur_pid, fault_va);
+        if (pte_entry & PTE_COW) {
+            // handling copy-on-write
+            map_decow(cur_pid, fault_va);
+            return;
+        } else {
+            KERN_PANIC("Writing to read-only page: va = %p\n", fault_va);
+        }
+    }
 
     // Uncomment this line to see information about the page fault
     // KERN_DEBUG("Page fault: VA 0x%08x, errno 0x%08x, process %d, EIP 0x%08x.\n",
