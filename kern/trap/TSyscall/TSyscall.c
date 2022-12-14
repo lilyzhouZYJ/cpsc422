@@ -93,6 +93,7 @@ extern uint8_t _binary___obj_user_fork_test_fork_test_start[];
 extern uint8_t _binary___obj_user_fstest_flocktest_start[];
 extern uint8_t _binary___obj_user_fstest_flock1_start[];
 extern uint8_t _binary___obj_user_fstest_flock2_start[];
+extern uint8_t _binary___obj_user_fstest_flock3_start[];
 
 /**
  * Spawns a new child process.
@@ -165,6 +166,9 @@ void sys_spawn(tf_t *tf)
         break;
     case 9:
         elf_addr = _binary___obj_user_fstest_flock2_start;
+        break;
+    case 10:
+        elf_addr = _binary___obj_user_fstest_flock3_start;
         break;
     default:
         syscall_set_errno(tf, E_INVAL_PID);

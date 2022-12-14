@@ -9,7 +9,7 @@ int main(int argc, char **argv)
 {
     printf("flock2: flock2 started.\n");
 
-    int fd1 = open("flock_file", O_CREATE | O_RDWR);
+    int fd1 = open("README", O_RDWR);
 
     // (1) fd1 acquire exclusive lock
     if(flock(fd1, LOCK_EX) < 0){
@@ -17,6 +17,9 @@ int main(int argc, char **argv)
     } else {
         printf("flock2: fd1 acquired exclusive lock\n");
     }
+
+    char buf[10];
+    read(fd1, buf, 6);
 
     yield();
 
@@ -31,9 +34,9 @@ int main(int argc, char **argv)
 
     // (3) fd1 release lock
     if(flock(fd1, LOCK_UN) < 0){
-        printf("flock2: fd1 fail to release lock\n");
+        printf("flock2: fd1 fail to release shared lock\n");
     } else {
-        printf("flock2: fd1 released lock\n");
+        printf("flock2: fd1 released shared lock\n");
     }
 
     yield();

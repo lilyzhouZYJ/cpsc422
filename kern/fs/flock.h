@@ -17,10 +17,7 @@ struct flock {
 
     // Condition variables
     CV cv_shared_flock;    // waiting to acquire a shared lock
-    CV cv_exclusive_flock; // waiting to acquire an exclusive lock
-
-    // flock:
-    int hold_flock; // whether the struct file object is holding the flock
+    CV cv_exclusive_flock; // waiting to acquire an exclusive lock// whether the struct file object is holding the flock
 };
 
 struct file;

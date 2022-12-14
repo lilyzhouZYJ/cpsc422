@@ -180,6 +180,12 @@ void test_multithread()
         printf("flock2 in process %d.\n", flock2_pid);
     else
         printf("Failed to launch flock2.\n");
+    
+    pid_t flock3_pid;
+    if ((flock3_pid = spawn(10, 500)) != -1)
+        printf("flock3 in process %d.\n", flock3_pid);
+    else
+        printf("Failed to launch flock3.\n");
 }
 
 int main(int argc, char **argv)

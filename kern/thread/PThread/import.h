@@ -11,6 +11,9 @@ void tcb_set_state(unsigned int pid, unsigned int state);
 void tqueue_init(unsigned int mbi_addr);
 void tqueue_enqueue(unsigned int chid, unsigned int pid);
 unsigned int tqueue_dequeue(unsigned int chid);
+void tqueue_remove(unsigned int chid, unsigned int pid);
+void tqueue_print(unsigned int chid);
+int tqueue_contains(unsigned int chid, unsigned int pid);
 
 unsigned int get_curid(void);
 void set_curid(unsigned int curid);

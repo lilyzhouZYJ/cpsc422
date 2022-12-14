@@ -27,7 +27,7 @@ struct file {
     uint32_t off;
 
     // flock:
-    int hold_flock;
+    int hold_flock; // whether the struct file object is holding the flock
 };
 
 void file_init(void);

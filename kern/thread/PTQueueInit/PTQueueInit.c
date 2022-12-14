@@ -1,6 +1,9 @@
 #include "lib/x86.h"
+#include <lib/debug.h>
 
 #include "import.h"
+
+int tqueue_contains(unsigned int chid, unsigned int pid);
 
 /**
  * Initializes all the thread queues with tqueue_init_at_id.
@@ -25,13 +28,19 @@ void tqueue_init(unsigned int mbi_addr)
  */
 void tqueue_enqueue(unsigned int chid, unsigned int pid)
 {
+    if(tqueue_contains(chid, pid) > 0){
+        return;
+    }
+
     unsigned int tail = tqueue_get_tail(chid);
+    // KERN_DEBUG("tail of queue is %d\n", tail);
 
     if (tail == NUM_IDS) {
         tcb_set_prev(pid, NUM_IDS);
         tcb_set_next(pid, NUM_IDS);
         tqueue_set_head(chid, pid);
         tqueue_set_tail(chid, pid);
+        // KERN_DEBUG("head of queue is %d\n", pid);
     } else {
         tcb_set_next(tail, pid);
         tcb_set_prev(pid, tail);
@@ -51,6 +60,7 @@ unsigned int tqueue_dequeue(unsigned int chid)
 
     pid = NUM_IDS;
     head = tqueue_get_head(chid);
+    // KERN_DEBUG("head of queue is %d\n", head);
 
     if (head != NUM_IDS) {
         pid = head;
@@ -59,9 +69,11 @@ unsigned int tqueue_dequeue(unsigned int chid)
         if (next == NUM_IDS) {
             tqueue_set_head(chid, NUM_IDS);
             tqueue_set_tail(chid, NUM_IDS);
+            // KERN_DEBUG("head of queue is %d\n", NUM_IDS);
         } else {
             tcb_set_prev(next, NUM_IDS);
             tqueue_set_head(chid, next);
+            // KERN_DEBUG("head of queue is %d\n", next);
         }
         tcb_set_prev(pid, NUM_IDS);
         tcb_set_next(pid, NUM_IDS);
@@ -101,4 +113,31 @@ void tqueue_remove(unsigned int chid, unsigned int pid)
     }
     tcb_set_prev(pid, NUM_IDS);
     tcb_set_next(pid, NUM_IDS);
+}
+
+
+void tqueue_print(unsigned int chid)
+{
+    unsigned int curr = tqueue_get_head(chid);
+    dprintf("ready queue: ");
+
+    while(curr != NUM_IDS){
+        dprintf("%d ", curr),
+        curr = tcb_get_next(curr);
+    }
+    dprintf("\n");
+}
+
+int tqueue_contains(unsigned int chid, unsigned int pid)
+{
+    unsigned int curr = tqueue_get_head(chid);
+
+    while(curr != NUM_IDS){
+        if(curr == pid){
+            return 1;
+        }
+        curr = tcb_get_next(curr);
+    }
+
+    return 0;
 }

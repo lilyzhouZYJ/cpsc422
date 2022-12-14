@@ -7,15 +7,15 @@
 
 int main(int argc, char **argv)
 {
-    printf("flock1: flock1 started.\n");
+    printf("flock3: flock3 started.\n");
 
     int fd1 = open("README", O_RDWR);
 
     // (1) fd1 acquire exclusive lock
     if(flock(fd1, LOCK_EX) < 0){
-        printf("flock1: fd1 fail to acquire exclusive lock\n");
+        printf("flock3: fd1 fail to acquire exclusive lock\n");
     } else {
-        printf("flock1: fd1 acquired exclusive lock\n");
+        printf("flock3: fd1 acquired exclusive lock\n");
     }
 
     char buf[10];
@@ -25,37 +25,37 @@ int main(int argc, char **argv)
 
     // (2) fd1 acquire shared lock
     if(flock(fd1, LOCK_SH) < 0){
-        printf("flock1: fd1 fail to acquire shared lock\n");
+        printf("flock3: fd1 fail to acquire shared lock\n");
     } else {
-        printf("flock1: fd1 acquired shared lock\n");
+        printf("flock3: fd1 acquired shared lock\n");
     }
 
     yield();
 
     // (3) fd1 release shared lock
     if(flock(fd1, LOCK_UN) < 0){
-        printf("flock1: fd1 fail to release shared lock\n");
+        printf("flock3: fd1 fail to release shared lock\n");
     } else {
-        printf("flock1: fd1 released shared lock\n");
+        printf("flock3: fd1 released shared lock\n");
     }
 
     yield();
 
     // (4) fd1 acquire shared lock
     if(flock(fd1, LOCK_SH) < 0){
-        printf("flock1: fd1 fail to acquire shared lock\n");
+        printf("flock3: fd1 fail to acquire shared lock\n");
     } else {
-        printf("flock1: fd1 acquired shared lock\n");
+        printf("flock3: fd1 acquired shared lock\n");
     }
 
     // (5) fd1 release shared lock
     if(flock(fd1, LOCK_UN) < 0){
-        printf("flock1: fd1 fail to release shared lock\n");
+        printf("flock3: fd1 fail to release shared lock\n");
     } else {
-        printf("flock1: fd1 released shared lock\n");
+        printf("flock3: fd1 released shared lock\n");
     }
 
-    printf("flock1: flock1 terminated\n");
+    printf("flock3: flock3 terminated\n");
 
     return 0;
 }

@@ -40,6 +40,8 @@ unsigned int thread_spawn(void *entry, unsigned int id, unsigned int quota)
     if (pid != NUM_IDS) {
         tcb_set_state(pid, TSTATE_READY);
         tqueue_enqueue(NUM_IDS, pid);
+        // KERN_DEBUG("ENQUEUE %d ONTO READY QUEUE\n", pid);
+        // tqueue_print(NUM_IDS);
     }
 
     spinlock_release(&sched_lk);
@@ -55,6 +57,8 @@ unsigned int thread_fork(void *entry, unsigned int id)
         map_cow(id, pid);
         tcb_set_state(pid, TSTATE_READY);
         tqueue_enqueue(NUM_IDS, pid);
+        // KERN_DEBUG("ENQUEUE %d ONTO READY QUEUE\n", pid);
+        // tqueue_print(NUM_IDS);
     }
 
     return pid;
@@ -80,9 +84,15 @@ void thread_yield(void)
     tcb_set_state(old_cur_pid, TSTATE_READY);
     tqueue_enqueue(NUM_IDS, old_cur_pid);
 
+    // KERN_DEBUG("ENQUEUE %d ONTO READY QUEUE\n", old_cur_pid);
+    // tqueue_print(NUM_IDS);
+
     new_cur_pid = tqueue_dequeue(NUM_IDS);
     tcb_set_state(new_cur_pid, TSTATE_RUN);
     set_curid(new_cur_pid);
+
+    // KERN_DEBUG("DEQUEUE %d FROM READY QUEUE\n", new_cur_pid);
+    // tqueue_print(NUM_IDS);
 
     if (old_cur_pid != new_cur_pid) {
         spinlock_release(&sched_lk);
@@ -130,7 +140,11 @@ void thread_sleep(void *chan, spinlock_t *lk)
     // Go to sleep.
     old_cur_pid = get_curid();
     new_cur_pid = tqueue_dequeue(NUM_IDS);
+    // KERN_DEBUG("DEQUEUE %d FROM READY QUEUE\n", new_cur_pid);
+    // tqueue_print(NUM_IDS);
+
     KERN_ASSERT(new_cur_pid != NUM_IDS);
+    
     tcb_set_chan(old_cur_pid, chan);
     tcb_set_state(old_cur_pid, TSTATE_SLEEP);
     tcb_set_state(new_cur_pid, TSTATE_RUN);
@@ -178,6 +192,8 @@ void thread_suspend(spinlock_t *lk, unsigned int old_cur_pid)
     KERN_ASSERT(old_cur_pid == get_curid());
 
     new_cur_pid = tqueue_dequeue(NUM_IDS);
+    // KERN_DEBUG("DEQUEUE %d FROM READY QUEUE\n", new_cur_pid);
+    // tqueue_print(NUM_IDS);
     KERN_ASSERT(new_cur_pid != NUM_IDS);
 
     spinlock_release(lk);
@@ -197,6 +213,8 @@ void thread_ready(unsigned int pid)
 
     tcb_set_state(pid, TSTATE_READY);
     tqueue_enqueue(NUM_IDS, pid);
+    // KERN_DEBUG("ENQUEUE %d TO READY LIST\n", pid);
+    // tqueue_print(NUM_IDS);
 
     spinlock_release(&sched_lk);
 }
